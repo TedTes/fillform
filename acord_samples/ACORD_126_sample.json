@@ -1,0 +1,21 @@
+{
+  "form_number": "ACORD 126",
+  "coverage_type": "Commercial General Liability",
+  "limits": {
+    "each_occurrence": 1000000,
+    "general_aggregate": 2000000,
+    "products_completed_ops": 2000000,
+    "personal_adv_injury": 1000000,
+    "medical_expense": 10000,
+    "fire_damage": 100000
+  },
+  "operations": {
+    "hazards_description": "Operates a goods distribution warehouse with forklift use",
+    "subcontractors_used": "Yes \u2013 Verified COI required",
+    "products_sold": "Storage and transport of packaged goods",
+    "retroactive_date": "2022-01-01"
+  },
+  "additional_insureds": [
+    "BigBank Commercial Lending (mortgagee)"
+  ]
+}
