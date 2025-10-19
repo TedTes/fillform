@@ -1,11 +1,9 @@
 #!/usr/bin/env python3
 """
-Simple runner for fill_acord.py
+Simple runner for fill_acord.py (ACORD 126 only for now)
 
 Usage:
-    python run_fill.py ACORD_125_sample.json
-    python run_fill.py ACORD_126_sample.json
-    python run_fill.py ACORD_140_sample.json
+    python run_fill.py ./acord_samples/ACORD_126_sample.json
 """
 
 import os
@@ -44,11 +42,11 @@ def main():
         print("Please place your blank ACORD PDF in ./templates/")
         sys.exit(1)
 
-    # Run the filler
+    # Run the filler (no --form)
     cmd = [
         sys.executable,
         "fill_acord.py",
-        "--form", form_type,
+
         "--data", data_file,
         "--template", template,
         "--out", output
