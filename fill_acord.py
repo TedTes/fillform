@@ -1,137 +1,29 @@
 #!/usr/bin/env python3
 """
-Fill ACORD PDFs from JSON payloads using a mapping layer.
+Fill ACORD 126 PDF from a JSON payload using a mapping layer.
 
-Usage examples:
-  python fill_acord.py --form 125 --data /path/ACORD_125_sample.json \
-    --template /path/blank/ACORD_125.pdf --out /path/out/ACORD_125_filled.pdf
-
-  python fill_acord.py --form 126 --data /path/ACORD_126_sample.json \
-    --template /path/blank/ACORD_126.pdf --out /path/out/ACORD_126_filled.pdf
-
-  python fill_acord.py --form 140 --data /path/ACORD_140_sample.json \
-    --template /path/blank/ACORD_140.pdf --out /path/out/ACORD_140_filled.pdf
+Example:
+  python fill_acord.py \
+    --data ./ACORD_126_sample.json \
+    --template ./ACORD_126.pdf \
+    --out ./ACORD_126_filled.pdf
 """
 
 import argparse
 import json
-import os
+import sys
 from typing import Any, Dict, Optional
 
-# --- PDF libraries ---
-# pypdf (a maintained fork of PyPDF2) works well. If you use PyPDF2, import from PyPDF2 instead.
+# PDF libs
 try:
     from pypdf import PdfReader, PdfWriter
-except Exception:
-    from PyPDF2 import PdfReader, PdfWriter  # fallback
+    from pypdf.generic import NameObject, DictionaryObject, BooleanObject
+except ImportError:
+    print("Error: pypdf is required. Install it with 'pip install pypdf'.")
+    sys.exit(1)
 
-# --- Optional: use your mapping utilities if available ---
-USE_EXT_MAPPING = False
-try:
-    # If you created the improved mapping module as suggested earlier:
-    # from app.infrastructure.pdf.acord_field_mappings_mvp import get_mapping, resolve_field_name, on_value, format_hint
-    from acord_field_mappings import get_mapping, resolve_field_name, on_value, format_hint  # adjust path as needed
-    USE_EXT_MAPPING = True
-except Exception:
-    pass
-
-
-# -----------------------------
-# Minimal inline mappings (fallback for demo)
-# -----------------------------
-def _fallback_mapping(form_type: str) -> Dict[str, Any]:
-    """Very small inline mapping so the script can run a demo even without your mapping module."""
-    if form_type == "125":
-        return {
-            "type": "acroform",
-            "field_map": {
-                "named_insured": "NamedInsured",
-                "applicant_name": "ApplicantName",
-                "insured_address": "MailingAddress",
-                "producer_name": "ProducerName",
-                "producer_address": "ProducerAddress",
-                "effective_date": "EffectiveDate",
-                "expiration_date": "ExpirationDate",
-                "policy_number": "PolicyNumber",
-                "business_description": "BusinessDescription",
-                "annual_revenue": "AnnualRevenue",
-                "num_employees": "NumberOfEmployees",
-                "prior_carrier": "PriorCarrier",
-                "prior_premium": "PriorPremium",
-                "loss_history": "Remarks",  # simple place to drop a note
-                "insurance_company": "CompanyName",
-                "policy_type": "PolicyType",
-                "producer_phone": "ProducerPhone",
-            },
-            "checkbox_on": {},
-            "formats": {
-                "effective_date": "date:mm/dd/yyyy",
-                "expiration_date": "date:mm/dd/yyyy",
-                "annual_revenue": "money:$#,###",
-                "prior_premium": "money:$#,###",
-            },
-        }
-    if form_type == "126":
-        return {
-            "type": "acroform",
-            "field_map": {
-                # Limits
-                "limits.each_occurrence": "EachOccurrence",
-                "limits.general_aggregate": "GeneralAggregate",
-                "limits.products_agg": "ProductsAggregate",
-                "limits.personal_adv_injury": "PersonalInjury",
-                "limits.medical_expense": "MedicalExpense",
-                "limits.fire_damage": "DamageToPremises",
-                # Ops / remarks
-                "ops.hazards_desc": "Remarks",
-                "ops.subcontractors": "GeneralLiabilityLineOfBusiness_RemarkText_A",
-                "ops.products_sold": "GeneralLiabilityLineOfBusiness_RemarkText_B",
-                # Retro (claims-made)
-                "claims_made.retro_date": "ClaimsMadeRetroDate",
-                # AI
-                "additional_insureds": "AdditionalInsuredName_A",
-            },
-            "checkbox_on": {},
-            "formats": {
-                "limits.each_occurrence": "money:$#,###",
-                "limits.general_aggregate": "money:$#,###",
-                "limits.products_agg": "money:$#,###",
-                "limits.personal_adv_injury": "money:$#,###",
-                "limits.medical_expense": "money:$#,###",
-                "limits.fire_damage": "money:$#,###",
-                "claims_made.retro_date": "date:mm/dd/yyyy",
-            },
-        }
-    if form_type == "140":
-        return {
-            "type": "acroform",
-            "field_map": {
-                "location.address": "LocationAddress1",
-                "building.description": "BuildingDescription1",
-                "building.year_built": "YearBuilt1",
-                "building.construction_type": "ConstructionType1",
-                "building.total_area": "TotalAreaSqFt1",
-                "building.stories": "NumberOfStories1",
-                "building.percent_sprinklered": "PercentSprinklered1",
-                "building.alarm_systems": "AlarmSystems1",
-                "coverage.replacement_cost": "BuildingLimit1",
-                "coverage.bpp": "ContentsLimit1",
-                "coverage.coinsurance": "Coinsurance1",
-                "coverage.deductible": "Deductible1",
-                "mortgagee.name": "MortgageeName1",
-                "mortgagee.loan": "MortgageeLoanNumber1",
-            },
-            "checkbox_on": {},
-            "formats": {
-                "building.year_built": "number:#",
-                "building.total_area": "number:#,###",
-                "coverage.replacement_cost": "money:$#,###",
-                "coverage.bpp": "money:$#,###",
-                "coverage.coinsurance": "percent:#%",
-            },
-        }
-    raise ValueError(f"No fallback mapping for form {form_type}")
-
+# Mapping (126 only)
+from acord_field_mappings import get_field_mapping
 
 # -----------------------------
 # Helpers: formatting & traversal
@@ -143,101 +35,110 @@ def _format_value(val: Any, hint: Optional[str]) -> str:
     if not hint:
         return str(val)
 
-    try:
-        kind, spec = hint.split(":", 1)
-    except ValueError:
-        kind, spec = hint, ""
-
     s = str(val)
+    kind, _, spec = hint.partition(":")
 
     if kind == "date":
-        # Expect yyyy-mm-dd; output mm/dd/yyyy
-        # Accept 'YYYY-MM-DD' or already 'MM/DD/YYYY'
+        # Accept 'YYYY-MM-DD' -> 'MM/DD/YYYY'; otherwise return as-is
         if "-" in s and len(s) >= 10:
-            y, m, d = s[:10].split("-")
-            return f"{m}/{d}/{y}"
+            try:
+                y, m, d = s[:10].split("-")
+                return f"{m}/{d}/{y}"
+            except Exception:
+                return s
         return s
     if kind == "money":
         try:
             n = float(val)
-            return f"${n:,.0f}" if ".#" not in spec else f"${n:,.2f}"
+            return f"${n:,.0f}"
         except Exception:
             return s
-    if kind == "number":
-        try:
-            n = float(val)
-            if "#,###" in spec:
-                return f"{n:,.0f}"
-            if "#.###" in spec:
-                return f"{n:.3f}"
-            return f"{n:g}"
-        except Exception:
-            return s
-    if kind == "percent":
-        try:
-            n = float(val)
-            return f"{int(n)}%" if n == int(n) else f"{n:.0f}%"
-        except Exception:
-            return s
-
     return s
 
-
 def _deep_get(obj: Dict[str, Any], dotted: str) -> Any:
-    """Get nested value by dot path (no arrays here in MVP fallback)."""
-    cur = obj
+    """
+    Get nested value by dotted path with optional array indices, e.g.:
+      'additional_insureds[0].name'
+    """
+    cur: Any = obj
     for part in dotted.split("."):
-        if isinstance(cur, dict) and part in cur:
-            cur = cur[part]
-        else:
-            return None
+        # handle indexes like 'foo[0]'
+        while True:
+            if "[" in part and part.endswith("]"):
+                key, idx_str = part[:part.index("[")], part[part.index("[")+1:-1]
+                if not isinstance(cur, dict) or key not in cur:
+                    return None
+                cur = cur[key]
+                try:
+                    idx = int(idx_str)
+                except Exception:
+                    return None
+                if not isinstance(cur, list) or idx >= len(cur):
+                    return None
+                cur = cur[idx]
+                # remove one bracket level and continue if nested (e.g., a[0][1])
+                open_brack = part.find("[", part.index("[")+1)
+                if open_brack == -1:
+                    break
+                part = part[open_brack:]  # proceed to next bracket level in same token
+            else:
+                # plain dict hop
+                if isinstance(cur, dict) and part in cur:
+                    cur = cur[part]
+                else:
+                    return None
+                break
     return cur
 
+# Checkbox “on” value helper
+def _checkbox_on_value(field_name: str, reader: PdfReader) -> str:
+    fields = reader.get_fields()
+    if fields and field_name in fields:
+        ap = fields[field_name].get('/AP')
+        if ap and '/N' in ap:
+            return list(ap['/N'].keys())[0]  # Use the first appearance state
+    return '/Yes'  # Fallback
 
-# -----------------------------
-# Core: fill AcroForm
-# -----------------------------
 def _set_need_appearances(writer: PdfWriter) -> None:
     """Ask viewer to regenerate appearances (helps when not explicitly flattened)."""
     try:
-        if "/AcroForm" in writer._root_object:
-            writer._root_object["/AcroForm"].update({"/NeedAppearances": True})
-        else:
-            from pypdf.generic import DictionaryObject, NameObject, BooleanObject  # type: ignore
-            writer._root_object.update({
-                NameObject("/AcroForm"): DictionaryObject({NameObject("/NeedAppearances"): BooleanObject(True)})
-            })
-    except Exception:
-        pass
+        catalog = writer._root_object
+        if "/AcroForm" not in catalog:
+            catalog[NameObject("/AcroForm")] = DictionaryObject()
+        catalog["/AcroForm"].update({NameObject("/NeedAppearances"): BooleanObject(True)})
+    except Exception as e:
+        print(f"Warning: Failed to set NeedAppearances: {e}")
 
+# -----------------------------
+# Core
+# -----------------------------
+def fill_acord_126(template_pdf: str, out_pdf: str, data: Dict[str, Any]) -> Dict[str, Any]:
+    reader = PdfReader(template_pdf)
+    fields = reader.get_fields()
+    if fields:
+        print("PDF Field Names:")
+        for field_name, field in fields.items():
+            print(f"  {field_name}: {field.get('/FT')} (Type), {field.get('/V')} (Value), {field.get('/AP')} (Appearance)")
+    else:
+        print("Warning: No fields found in PDF! The template may not be fillable.")
 
-def fill_acroform(template_pdf: str, out_pdf: str,
-                  form_type: str, data: Dict[str, Any]) -> Dict[str, Any]:
     """
-    Fill an AcroForm-based PDF using either external mapping utilities or the fallback map.
+    Fill ACORD 126 using the mapping.
     Returns a report dict with counts and any warnings.
     """
     report = {"written": 0, "skipped": [], "unknown_pdf_fields": [], "notes": []}
+    fmap = get_field_mapping("126")
 
-    # Load mapping
-    if USE_EXT_MAPPING:
-        m = get_mapping(form_type)  # your richer mapping
-        fmap = m.get("field_map", {})
-        formats = m.get("formats", {})
-        # use resolve_field_name if you have arrays; here we only resolve simple keys
-        def resolve(canon_key: str) -> Optional[str]:
-            return fmap.get(canon_key)
-        def fmt_hint(canon_key: str) -> Optional[str]:
-            return formats.get(canon_key)
-        def on_val(canon_key: str) -> str:
-            return m.get("checkbox_on", {}).get(canon_key, "/Yes")
-    else:
-        fm = _fallback_mapping(form_type)
-        fmap = fm["field_map"]
-        formats = fm.get("formats", {})
-        resolve = lambda ck: fmap.get(ck)
-        fmt_hint = lambda ck: formats.get(ck)
-        on_val = lambda ck: "/Yes"
+    # Optional formatting hints for a few keys
+    format_hints = {
+        "claims_made.retro_date": "date:mm/dd/yyyy",
+        "limits.each_occurrence": "money:$",
+        "limits.general_aggregate": "money:$",
+        "limits.products_completed_ops": "money:$",
+        "limits.personal_adv_injury": "money:$",
+        "limits.medical_expense": "money:$",
+        "limits.fire_damage": "money:$",
+    }
 
     # Open PDF
     reader = PdfReader(template_pdf)
@@ -245,134 +146,122 @@ def fill_acroform(template_pdf: str, out_pdf: str,
     for p in reader.pages:
         writer.add_page(p)
 
-    # Existing field set (for safety logs)
+    # Copy /AcroForm from reader to writer with pdf_dest
+    try:
+        if "/AcroForm" in reader.trailer["/Root"]:
+            acro_form = reader.trailer["/Root"]["/AcroForm"]
+            writer._root_object[NameObject("/AcroForm")] = acro_form.clone(writer)
+            # Ensure fields are accessible
+            if "/Fields" not in writer._root_object["/AcroForm"]:
+                writer._root_object["/AcroForm"][NameObject("/Fields")] = acro_form.get("/Fields", [])
+    except Exception as e:
+        print(f"Error setting up /AcroForm: {e}")
+        report["notes"].append(f"Failed to set up /AcroForm: {e}")
+
+    # Get current field set (for logging)
     try:
         fields = reader.get_fields() or {}
         existing_field_names = set(fields.keys())
-    except Exception:
+    except Exception as e:
+        print(f"Error reading PDF fields: {e}")
         existing_field_names = set()
 
     # Map JSON -> PDF fields
-    for canon_key, pdf_key in fmap.items():
-        pdf_field_name = resolve(canon_key)
-        if not pdf_field_name:
-            report["skipped"].append((canon_key, "no_mapping"))
-            continue
-
-        # get source value from JSON (try exact path, then dotted aliases for fallback mapping)
-        src_val = None
-        if USE_EXT_MAPPING:
-            # if your canonical keys are dotted (e.g., "insured.name"), try deep get
-            src_val = _deep_get(data, canon_key) or data.get(canon_key)
-        else:
-            # fallback: translate a few expected keys to the sample structure
-            sample_map = {
-                # 125
-                "named_insured": ("named_insured",),
-                "applicant_name": ("applicant.name",),
-                "insured_address": ("applicant.address",),
-                "producer_name": ("producer.name",),
-                "producer_address": ("producer.address",),
-                "effective_date": ("coverage.effective_date",),
-                "expiration_date": ("coverage.expiration_date",),
-                "policy_number": ("policy_number",),
-                "business_description": ("applicant.business_description",),
-                "annual_revenue": ("applicant.annual_revenue",),
-                "num_employees": ("applicant.num_employees",),
-                "prior_carrier": ("prior_insurance.carrier",),
-                "prior_premium": ("prior_insurance.premium",),
-                "loss_history": ("loss_history",),
-                "insurance_company": ("insurance_company",),
-                "policy_type": ("coverage.policy_type",),
-                "producer_phone": ("producer.phone",),
-
-                # 126
-                "limits.each_occurrence": ("limits.each_occurrence",),
-                "limits.general_aggregate": ("limits.general_aggregate",),
-                "limits.products_agg": ("limits.products_completed_ops",),
-                "limits.personal_adv_injury": ("limits.personal_adv_injury",),
-                "limits.medical_expense": ("limits.medical_expense",),
-                "limits.fire_damage": ("limits.fire_damage",),
-                "ops.hazards_desc": ("operations.hazards_description",),
-                "ops.subcontractors": ("operations.subcontractors_used",),
-                "ops.products_sold": ("operations.products_sold",),
-                "claims_made.retro_date": ("operations.retroactive_date",),
-                "additional_insureds": ("additional_insureds",),
-
-                # 140
-                "location.address": ("location.address",),
-                "building.description": ("location.building_description",),
-                "building.year_built": ("location.year_built",),
-                "building.construction_type": ("location.construction_type",),
-                "building.total_area": ("location.total_area_sqft",),
-                "building.stories": ("location.stories",),
-                "building.percent_sprinklered": ("location.percent_sprinklered",),
-                "building.alarm_systems": ("location.alarm_systems",),
-                "coverage.replacement_cost": ("coverage.replacement_cost",),
-                "coverage.bpp": ("coverage.business_personal_property",),
-                "coverage.coinsurance": ("coverage.coinsurance_percent",),
-                "coverage.deductible": ("coverage.deductible",),
-                "mortgagee.name": ("mortgagee.name",),
-                "mortgagee.loan": ("mortgagee.loan_number",),
-            }
-            for alias in sample_map.get(canon_key, (canon_key,)):
-                v = _deep_get(data, alias)
-                if v is not None:
-                    src_val = v
-                    break
-
+    for canon_key, pdf_field_name in fmap.items():
+        # 1) Find source value
+        src_val = _deep_get(data, canon_key)
         if src_val is None:
             report["skipped"].append((canon_key, "no_source_value"))
             continue
 
-        # Format
-        value = _format_value(src_val, fmt_hint(canon_key))
+        # 2) Checkbox or text?
+        is_checkbox = pdf_field_name.endswith("_Indicator_A") or pdf_field_name.endswith("_Indicator_B") \
+                      or "Indicator" in pdf_field_name
 
-        # If the target field doesn't exist, log it (helps when PDF variants differ)
+        # 3) Format value
+        value = src_val
+        if is_checkbox:
+            truthy = {True, "true", "yes", "y", "on", "1", 1}
+            val_norm = str(src_val).strip().lower()
+            set_on = (src_val in truthy) or (val_norm in {"true", "yes", "y", "on", "1"})
+            value = _checkbox_on_value(pdf_field_name, reader) if set_on else "Off"
+        else:
+            # Handle remarks concatenation
+            if canon_key in ["operations.hazards_description", "operations.subcontractors_used"]:
+                if pdf_field_name == "GeneralLiabilityLineOfBusiness_RemarkText_A":
+                    haz = _deep_get(data, "operations.hazards_description") or ""
+                    subs = _deep_get(data, "operations.subcontractors_used") or ""
+                    value = f"{haz}; {subs}".strip("; ")
+                    if haz and subs:
+                        report["notes"].append(f"Combined {canon_key} into {pdf_field_name}")
+            elif canon_key == "operations.products_sold" and pdf_field_name == "GeneralLiabilityLineOfBusiness_RemarkText_B":
+                value = _deep_get(data, canon_key) or ""
+            else:
+                value = _format_value(src_val, format_hints.get(canon_key))
+
+        # 4) Skip claims_made.retro_date if claims_made is not selected
+        if canon_key == "claims_made.retro_date" and not _deep_get(data, "coverage_type.claims_made"):
+            report["skipped"].append((canon_key, "claims_made_not_selected"))
+            continue
+
+        # 5) Warn if field not present in this template
         if existing_field_names and pdf_field_name not in existing_field_names:
             report["unknown_pdf_fields"].append(pdf_field_name)
-            # still attempt to set; some readers allow writing unnamed widget dicts
 
-        # Write to AcroForm: writer.update_page_form_field_values(page, {name:value})
-        # We need to set on every page because fields can be attached per-page.
-        for i, page in enumerate(writer.pages):
+        # 6) Write to all pages (some widgets are per-page)
+        updated = False
+        for page in writer.pages:
             try:
                 writer.update_page_form_field_values(page, {pdf_field_name: value})
-            except Exception:
-                # Some libs throw if the field isn't on that page; ignore and continue
-                pass
+                updated = True
+            except Exception as e:
+                print(f"Error updating field {pdf_field_name}: {e}")
+                break
 
-        report["written"] += 1
+        if updated:
+            report["written"] += 1
+        else:
+            report["skipped"].append((canon_key, "failed_to_update"))
 
-    # Ask viewers to regenerate appearances (improves rendering)
+    # Ask viewers to regenerate appearances
     _set_need_appearances(writer)
 
-    # Save
-    with open(out_pdf, "wb") as f:
-        writer.write(f)
+    # Flatten the PDF using _flatten (private method, use with caution)
+    try:
+        writer._flatten()
+    except AttributeError:
+        print("Warning: Flattening not supported. Output may require viewer regeneration.")
+        report["notes"].append("Flattening failed; fields may not be visible without viewer interaction.")
 
-    # Deduplicate logs
+    # Save
+    try:
+        with open(out_pdf, "wb") as f:
+            writer.write(f)
+    except Exception as e:
+        print(f"Error writing output PDF {out_pdf}: {e}")
+        report["notes"].append(f"Failed to write PDF: {e}")
+        return report
+
+    # Dedup logs
     report["unknown_pdf_fields"] = sorted(set(report["unknown_pdf_fields"]))
     return report
-
 
 # -----------------------------
 # CLI
 # -----------------------------
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--form", required=True, choices=["125", "126", "140"], help="ACORD form number")
-    ap.add_argument("--data", required=True, help="Path to input JSON payload")
-    ap.add_argument("--template", required=True, help="Path to blank ACORD PDF")
+    ap.add_argument("--data", required=True, help="Path to ACORD 126 input JSON payload")
+    ap.add_argument("--template", required=True, help="Path to blank ACORD_126.pdf")
     ap.add_argument("--out", required=True, help="Path to write filled PDF")
     args = ap.parse_args()
 
     with open(args.data, "r", encoding="utf-8") as f:
         payload = json.load(f)
 
-    report = fill_acroform(args.template, args.out, args.form, payload)
+    report = fill_acord_126(args.template, args.out, payload)
 
-    print("\n=== Fill Report ===")
+    print("\n=== ACORD 126 Fill Report ===")
     print(f"Written fields: {report['written']}")
     if report["skipped"]:
         print("Skipped mappings:")
@@ -382,8 +271,11 @@ def main():
         print("Unknown PDF field names (not found in template):")
         for n in report["unknown_pdf_fields"]:
             print(f"  - {n}")
+    if report["notes"]:
+        print("Notes:")
+        for note in report["notes"]:
+            print(f"  - {note}")
     print(f"Output: {args.out}\n")
-
 
 if __name__ == "__main__":
     main()
