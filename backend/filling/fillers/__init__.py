@@ -2,5 +2,6 @@
 PDF filler implementations.
 """
 
-# Will be populated when implementations are added
-__all__ = []
+from .acord_126_filler import Acord126Filler
+
+__all__ = ['Acord126Filler']
