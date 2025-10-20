@@ -6,10 +6,11 @@ from .interfaces.extractor import IExtractor
 from .interfaces.parser import IParser
 from .interfaces.mapper import IMapper
 from .models.extraction_result import ExtractionResult
-
+from .extractors import Acord126Extractor
 __all__ = [
     'IExtractor',
     'IParser',
     'IMapper',
-    'ExtractionResult'
+    'ExtractionResult',
+    'Acord126Extractor'
 ]
