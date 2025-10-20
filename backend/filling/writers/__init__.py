@@ -2,5 +2,6 @@
 PDF writer implementations.
 """
 
-# Will be populated when implementations are added
-__all__ = []
+from .pdf_field_writer import PdfFieldWriter
+
+__all__ = ['PdfFieldWriter']
