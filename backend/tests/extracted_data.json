@@ -1,0 +1,184 @@
+{
+  "form_number": "ACORD 126",
+  "applicant": {
+    "business_name": "Harborview Logistics LLC",
+    "signature": "John Doe",
+    "signature_date": "2025-10-19"
+  },
+  "coverage_type": {
+    "occurrence": false,
+    "claims_made": false
+  },
+  "claims_made": {
+    "retro_date": null,
+    "uninterrupted_coverage_entry_date": "2021-01-01"
+  },
+  "limits": {
+    "each_occurrence": 1000000.0,
+    "general_aggregate": 2000000.0,
+    "products_completed_ops": 2000000.0,
+    "personal_adv_injury": 1000000.0,
+    "medical_expense": 10000.0,
+    "fire_damage": 100000.0,
+    "employee_benefits": 50000.0,
+    "other_coverage_limit": 250000.0
+  },
+  "deductibles": {
+    "property_damage": 5000.0,
+    "bodily_injury": 5000.0,
+    "other": 10000.0,
+    "per_claim": false,
+    "per_occurrence": false
+  },
+  "premiums": {
+    "premises_operations": 15000.0,
+    "products": 5000.0,
+    "other_coverage": 2000.0,
+    "total": 22000.0
+  },
+  "producer": {
+    "full_name": "Jane Smith",
+    "state_license": "TX123456",
+    "national_identifier": "US-987654321",
+    "authorized_representative_signature": "Jane Smith",
+    "customer_identifier": null
+  },
+  "policy": {
+    "policy_number": "POL-2025-001",
+    "effective_date": "2025-10-01",
+    "completion_date": "2025-10-19"
+  },
+  "insurer": {
+    "full_name": "SafeGuard Insurance Co.",
+    "naic_code": "12345"
+  },
+  "operations": {
+    "hazards_description": "Operates a goods distribution warehouse with forklift use; Yes \u2013 Verified COI required",
+    "subcontractors_used": "Operates a goods distribution warehouse with forklift use; Yes \u2013 Verified COI required",
+    "products_sold": "Storage and transport of packaged goods",
+    "class_code": "12345",
+    "premium_basis_code": "SQFT",
+    "exposure": "10000",
+    "territory_code": "TX",
+    "premises_operations_rate": "1.5",
+    "products_rate": "0.5",
+    "classification": "Warehouse Operations",
+    "additional_hazard": {
+      "location_producer_id": "LOC-001",
+      "hazard_producer_id": "HAZ-001",
+      "class_code": "67890",
+      "premium_basis_code": "UNITS",
+      "exposure": "5000",
+      "territory_code": "TX",
+      "premises_operations_rate": "1.2",
+      "products_rate": "0.3",
+      "classification": "Additional Storage"
+    }
+  },
+  "questions": {
+    "aa_a_code": "Yes",
+    "aa_b_code": "No",
+    "aa_c_code": "Yes",
+    "aa_d_code": "No",
+    "aa_e_code": "Yes",
+    "aa_f_code": "No",
+    "aa_g_code": "Yes",
+    "aa_h_code": "No",
+    "aa_i_code": "Yes",
+    "aa_j_code": "No",
+    "ab_a_code": "No",
+    "ab_b_code": "Yes",
+    "ab_c_code": "No",
+    "ab_d_code": "Yes",
+    "ab_e_code": "No",
+    "ab_f_code": "Yes",
+    "ab_g_code": "No",
+    "ab_h_code": "Yes",
+    "ab_i_code": "No",
+    "ac_a_code": "Yes",
+    "ac_b_code": "No",
+    "ac_c_code": "Yes",
+    "ac_d_code": "No",
+    "ac_e_code": "Yes",
+    "ac_f_code": "No",
+    "ac_g_code": "Yes",
+    "ac_h_code": "No",
+    "ac_j_code": "Yes",
+    "ka_a_code": "No",
+    "ka_g_code": "Yes",
+    "ka_h_code": "No",
+    "kab_code": "Yes"
+  },
+  "explanations": {
+    "applicant_draw_plans": "N/A",
+    "safety_policy": "Yes \u2013 Annual review"
+  },
+  "contractors": {
+    "subcontractors_paid": 25000.0,
+    "work_subcontracted_percent": "30",
+    "full_time_employees": "15",
+    "part_time_employees": "5",
+    "type_of_work_subcontracted": "Packaging and labeling"
+  },
+  "products_and_completed_operations": {
+    "product_a": {
+      "name": "Packaged Goods",
+      "annual_gross_sales": 500000.0,
+      "unit_count": "1000",
+      "in_market_months": "12",
+      "expected_life_months": "24",
+      "intended_use": "Commercial storage",
+      "principal_components": "Cardboard, plastic"
+    },
+    "product_b": {
+      "name": "Transport Containers",
+      "annual_gross_sales": 300000.0
+    }
+  },
+  "athletic_team": {
+    "team_a": {
+      "sport_description": "Soccer",
+      "contact_sport": "Yes",
+      "age_group_twelve_and_under": false,
+      "age_group_thirteen_through_eighteen": false,
+      "age_group_over_eighteen": false,
+      "sponsorship_extent": "Partial funding"
+    },
+    "team_b": {
+      "sport_description": "Basketball"
+    }
+  },
+  "swimming_pool": {
+    "approved_fence": false,
+    "limited_access": false,
+    "diving_board": false,
+    "slide": false,
+    "above_ground": false,
+    "in_ground": false,
+    "life_guard": false
+  },
+  "building_occupancy": {
+    "apartment_count": "0",
+    "apartment_area": "0"
+  },
+  "additional_interests": [
+    {
+      "name": "BigBank Commercial Lending (mortgagee)",
+      "interest_type": null,
+      "certificate_required": false,
+      "mailing_address": {
+        "line_one": "123 Main St",
+        "city": "Austin",
+        "state": "TX",
+        "postal_code": "78701",
+        "country": "US"
+      },
+      "account_number": "ACC-123456"
+    }
+  ],
+  "commercial_inland_marine_property": {
+    "small_tools": false,
+    "large_equipment": false,
+    "instruction_given_code": "STD"
+  }
+}
