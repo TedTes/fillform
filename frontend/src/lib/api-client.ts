@@ -243,3 +243,178 @@ export async function checkBackendAvailability(): Promise<{
     }
   }
 }
+
+// ========================================
+// FOLDER OPERATIONS
+// ========================================
+
+export interface Folder {
+  folder_id: string
+  name: string
+  created_at: string
+  file_count: number
+  submissions: any[]
+}
+
+/**
+ * Get all folders.
+ */
+export async function getFolders(): Promise<Folder[]> {
+  try {
+    const response = await api.get<ApiResponse<{ folders: Folder[] }>>('/folders')
+
+    if (!response.data.success) {
+      throw new Error(response.data.error || 'Failed to get folders')
+    }
+
+    return response.data.data?.folders || []
+  } catch (error) {
+    handleApiError(error)
+  }
+}
+
+/**
+ * Create a new folder.
+ */
+export async function createFolder(name: string): Promise<Folder> {
+  try {
+    const response = await api.post<ApiResponse<{ folder: Folder }>>('/folders', { name })
+
+    if (!response.data.success) {
+      throw new Error(response.data.error || 'Failed to create folder')
+    }
+
+    return response.data.data!.folder
+  } catch (error) {
+    handleApiError(error)
+  }
+}
+
+/**
+ * Get folder by ID.
+ */
+export async function getFolder(id: string): Promise<Folder> {
+  try {
+    const response = await api.get<ApiResponse<{ folder: Folder }>>(`/folders/${id}`)
+
+    if (!response.data.success) {
+      throw new Error(response.data.error || 'Failed to get folder')
+    }
+
+    return response.data.data!.folder
+  } catch (error) {
+    handleApiError(error)
+  }
+}
+
+/**
+ * Delete folder.
+ */
+export async function deleteFolder(id: string): Promise<void> {
+  try {
+    const response = await api.delete<ApiResponse>(`/folders/${id}`)
+
+    if (!response.data.success) {
+      throw new Error(response.data.error || 'Failed to delete folder')
+    }
+  } catch (error) {
+    handleApiError(error)
+  }
+}
+
+/**
+ * Upload PDF to folder.
+ */
+export async function uploadPdfToFolder(
+  folderId: string,
+  file: File,
+  onProgress?: (progress: number) => void
+): Promise<SubmissionResponse> {
+  try {
+    const formData = new FormData()
+    formData.append('file', file)
+    formData.append('folder_id', folderId)
+
+    const response = await api.post<ApiResponse<SubmissionResponse>>(
+      '/submissions/upload',
+      formData,
+      {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+        onUploadProgress: (progressEvent) => {
+          if (onProgress && progressEvent.total) {
+            const progress = Math.round((progressEvent.loaded * 100) / progressEvent.total)
+            onProgress(progress)
+          }
+        },
+      }
+    )
+
+    if (!response.data.success) {
+      throw new Error(response.data.error || 'Upload failed')
+    }
+    const { submission_id,extraction} = response.data.data!;
+    return {
+      submission_id: submission_id!,
+      extraction: extraction!,
+    }
+  } catch (error) {
+    handleApiError(error)
+  }
+}
+
+/**
+ * Upload multiple PDFs to folder.
+ */
+export async function uploadMultiplePdfsToFolder(
+  folderId: string,
+  files: File[],
+  onProgress?: (fileIndex: number, progress: number) => void
+): Promise<SubmissionResponse[]> {
+  try {
+    const formData = new FormData()
+    files.forEach((file) => {
+      formData.append('files[]', file)
+    })
+    formData.append('folder_id', folderId)
+
+    const response = await api.post<ApiResponse<any>>(
+      '/submissions/upload',
+      formData,
+      {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      }
+    )
+
+    if (!response.data.success) {
+      throw new Error(response.data.error || 'Upload failed')
+    }
+    const results = response.data.data!;
+    return results || []
+  } catch (error) {
+    handleApiError(error)
+  }
+}
+
+/**
+ * Fill multiple PDFs.
+ */
+export async function batchFillPdfs(submissionIds: string[]): Promise<FillResponse[]> {
+  try {
+    const response = await api.post<ApiResponse<any>>(
+      '/submissions/batch-fill',
+      { submission_ids: submissionIds }
+    )
+
+    if (!response.data.success) {
+      throw new Error(response.data.error || 'Batch fill failed')
+    }
+    const {results} = response.data.data!;
+    return results || []
+  } catch (error) {
+    handleApiError(error)
+  }
+}

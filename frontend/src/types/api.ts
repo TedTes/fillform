@@ -19,6 +19,7 @@ export interface ApiResponse<T = any> {
   }
   
   export interface FillResponse {
+    submission_id?: string
     fill_report: {
       written: number
       skipped: number

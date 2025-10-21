@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState ,useEffect} from 'react'
 import { mockFolders, mockInputFiles, mockOutputFiles } from '@/lib/mock-data'
 import type { Folder, InputFile, OutputFile } from '@/types/folder'
 import FolderPanel from '@/components/FolderPanel'
@@ -8,7 +8,13 @@ import InputFilesSection from '@/components/InputFilesSection'
 import OutputFilesSection from '@/components/OutputFilesSection'
 import GenerateModal from '@/components/GenerateModal'
 import useToast from '@/hooks/useToast'
-
+import { 
+  getFolders, 
+  createFolder as apiCreateFolder,
+  uploadPdfToFolder,
+  batchFillPdfs,
+  downloadPdf as apiDownloadPdf
+} from '@/lib/api-client'
 export default function Home() {
   // Toast
   const toast = useToast()
@@ -20,11 +26,15 @@ export default function Home() {
   const [outputFiles, setOutputFiles] = useState<OutputFile[]>(mockOutputFiles)
   const [isGenerateModalOpen, setIsGenerateModalOpen] = useState(false)
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
-
+  const [isLoading, setIsLoading] = useState(true)
   // Derived state
   const activeFolderInputs = inputFiles.filter((f) => f.folderId === activeFolder.id)
   const activeFolderOutputs = outputFiles.filter((f) => f.folderId === activeFolder.id)
 
+   // Load folders on mount
+   useEffect(() => {
+    loadFolders()
+  }, [])
   // Update folder file counts
   const updateFolderCounts = () => {
     setFolders((prev) =>
@@ -34,74 +44,129 @@ export default function Home() {
       }))
     )
   }
-
+  const loadFolders = async () => {
+    try {
+      setIsLoading(true)
+      const fetchedFolders = await getFolders()
+     
+      // Transform backend format to frontend format
+      const transformedFolders = fetchedFolders.map(f => ({
+        id: f.folder_id,
+        name: f.name,
+        created_at: f.created_at,
+        file_count: f.file_count
+      }))
+      
+      setFolders(transformedFolders)
+      
+      if (transformedFolders.length > 0) {
+        setActiveFolder(transformedFolders[0])
+      }
+    } catch (error) {
+      console.error('Failed to load folders:', error)
+      toast.error('Failed to load folders')
+      
+      // Fallback to mock data
+      const { mockFolders } = await import('@/lib/mock-data')
+      setFolders(mockFolders)
+      setActiveFolder(mockFolders[0])
+    } finally {
+      setIsLoading(false)
+    }
+  }
   // Folder Actions
-  const handleNewFolder = () => {
+  const handleNewFolder = async () => {
     const name = prompt('Enter folder name:')
     if (!name || name.trim() === '') return
 
-    const newFolder: Folder = {
-      id: `folder-${Date.now()}`,
-      name: name.trim(),
-      createdAt: new Date().toISOString(),
-      fileCount: 0,
+    try {
+      const newFolder = await apiCreateFolder(name.trim())
+      
+      const transformedFolder = {
+        id: newFolder.folder_id,
+        name: newFolder.name,
+        created_at: newFolder.created_at,
+        file_count: 0
+      }
+      
+      setFolders((prev) => [transformedFolder, ...prev])
+      setActiveFolder(transformedFolder)
+      toast.success(`Folder "${name.trim()}" created successfully`)
+      console.log('✅ Created folder:', name)
+    } catch (error) {
+      console.error('Failed to create folder:', error)
+      toast.error('Failed to create folder')
     }
-
-    setFolders((prev) => [...prev, newFolder])
-    setActiveFolder(newFolder)
-    toast.success(`Folder "${name.trim()}" created successfully`)
-    console.log('✅ Created folder:', name)
   }
 
   // File Upload Actions
-  const handleUploadFiles = () => {
-    const fileCount = Math.floor(Math.random() * 3) + 1
-    const newFiles: InputFile[] = []
-
-    for (let i = 0; i < fileCount; i++) {
-      const newFile: InputFile = {
-        id: `input-${Date.now()}-${i}`,
-        folderId: activeFolder.id,
-        filename: `uploaded_file_${Date.now()}_${i + 1}.pdf`,
-        size: Math.floor(Math.random() * 3000000) + 1000000,
-        status: 'uploading',
-        uploadedAt: new Date().toISOString(),
-      }
-      newFiles.push(newFile)
+  const handleUploadFiles = async () => {
+    if (!activeFolder) {
+      toast.error('No active folder')
+      return
     }
 
-    setInputFiles((prev) => [...prev, ...newFiles])
-    toast.info(`Uploading ${fileCount} file${fileCount > 1 ? 's' : ''}...`)
-    console.log(`✅ Uploading ${fileCount} file(s)...`)
-
-    newFiles.forEach((file, index) => {
-      setTimeout(() => {
-        setInputFiles((prev) =>
-          prev.map((f) =>
-            f.id === file.id ? { ...f, status: 'extracting' } : f
-          )
-        )
-
-        setTimeout(() => {
+    // Create file input
+    const input = document.createElement('input')
+    input.type = 'file'
+    input.accept = '.pdf'
+    input.multiple = true
+    
+    input.onchange = async (e) => {
+      const target = e.target as HTMLInputElement
+      const files = Array.from(target.files || [])
+      
+      if (files.length === 0) return
+      
+      toast.info(`Uploading ${files.length} file${files.length > 1 ? 's' : ''}...`)
+      
+      for (const file of files) {
+        try {
+          // Create temporary input file entry
+          const tempFile: InputFile = {
+            id: `temp-${Date.now()}-${Math.random()}`,
+            folderId: activeFolder.id,
+            filename: file.name,
+            size: file.size,
+            status: 'uploading',
+            uploadedAt: new Date().toISOString(),
+          }
+          
+          setInputFiles((prev) => [...prev, tempFile])
+          
+          // Upload to backend
+          const result = await uploadPdfToFolder(activeFolder.id, file)
+          
+          // Update with real data
           setInputFiles((prev) =>
             prev.map((f) =>
-              f.id === file.id
-                ? { ...f, status: 'ready', confidence: Math.random() * 0.2 + 0.75 }
+              f.id === tempFile.id
+                ? {
+                    ...f,
+                    id: result.submission_id,
+                    status: 'ready',
+                    confidence: result.extraction.confidence,
+                  }
                 : f
             )
           )
           
-          // Show success toast only for the last file
-          if (index === newFiles.length - 1) {
-            toast.success(`${fileCount} file${fileCount > 1 ? 's' : ''} uploaded successfully`)
-          }
+        } catch (error) {
+          console.error('Upload failed:', error)
+          toast.error(`Failed to upload ${file.name}`)
           
-          console.log(`✅ File ready: ${file.filename}`)
-        }, 1500)
-      }, 1000 * (index + 1))
-    })
-
-    updateFolderCounts()
+          // Remove failed upload
+          setInputFiles((prev) => prev.filter((f) => f.filename !== file.name))
+        }
+      }
+      
+      toast.success(`${files.length} file${files.length > 1 ? 's' : ''} uploaded successfully`)
+      
+      // Reload folder to update counts
+      loadFolders()
+    }
+    
+    input.click()
   }
 
   const handleRemoveFile = (fileId: string) => {
@@ -128,58 +193,71 @@ export default function Home() {
     setIsGenerateModalOpen(true)
   }
 
-  const handleGenerate = (selectedFileIds: string[]) => {
-    console.log(`✅ Generating outputs for ${selectedFileIds.length} file(s)...`)
-    toast.info(`Generating ${selectedFileIds.length} output file${selectedFileIds.length > 1 ? 's' : ''}...`)
+  const handleGenerate = async (selectedFileIds: string[]) => {
+    try {
+      toast.info(`Generating ${selectedFileIds.length} output file${selectedFileIds.length > 1 ? 's' : ''}...`)
+      
+      // Create placeholder outputs
+      const newOutputs: OutputFile[] = selectedFileIds.map((inputFileId) => {
+        const inputFile = inputFiles.find((f) => f.id === inputFileId)
+        if (!inputFile) return null
 
-    const newOutputs: OutputFile[] = selectedFileIds.map((inputFileId) => {
-      const inputFile = inputFiles.find((f) => f.id === inputFileId)
-      if (!inputFile) return null
+        return {
+          id: `generating-${Date.now()}-${Math.random()}`,
+          folderId: activeFolder!.id,
+          inputFileId: inputFile.id,
+          inputFilename: inputFile.filename,
+          filename: `ACORD_126_filled_${Date.now()}.pdf`,
+          size: inputFile.size + 100000,
+          status: 'generating' as const,
+          generatedAt: new Date().toISOString(),
+        }
+      }).filter(Boolean) as OutputFile[]
 
-      return {
-        id: `output-${Date.now()}-${Math.random()}`,
-        folderId: activeFolder.id,
-        inputFileId: inputFile.id,
-        inputFilename: inputFile.filename,
-        filename: `ACORD_126_filled_${Date.now()}.pdf`,
-        size: inputFile.size + Math.floor(Math.random() * 200000),
-        status: 'generating' as const,
-        generatedAt: new Date().toISOString(),
-      }
-    }).filter(Boolean) as OutputFile[]
-
-    setOutputFiles((prev) => [...prev, ...newOutputs])
-
-    setTimeout(() => {
+      setOutputFiles((prev) => [...prev, ...newOutputs])
+      
+      // Call backend batch fill
+      const results = await batchFillPdfs(selectedFileIds)
+      
+      // Update outputs with results
       setOutputFiles((prev) =>
-        prev.map((f) =>
-          newOutputs.find((n) => n.id === f.id)
-            ? {
-                ...f,
-                status: 'ready' as const,
-                fieldsWritten: Math.floor(Math.random() * 20) + 110,
-                fieldsSkipped: Math.floor(Math.random() * 10) + 3,
-              }
-            : f
-        )
+        prev.map((output) => {
+          const result = results.find(r => r.submission_id === output.inputFileId)
+          if (result) {
+            return {
+              ...output,
+              id: output.inputFileId, // Use submission_id as output id
+              status: 'ready' as const,
+              fieldsWritten: result.fill_report.written,
+              fieldsSkipped: result.fill_report.skipped,
+            }
+          }
+          return output
+        })
       )
+      
       toast.success(`${selectedFileIds.length} output file${selectedFileIds.length > 1 ? 's' : ''} generated successfully`)
       console.log('✅ Generation complete!')
-    }, 3000)
+      
+    } catch (error) {
+      console.error('Generation failed:', error)
+      toast.error('Failed to generate outputs')
+      
+      // Remove generating outputs
+      setOutputFiles((prev) => prev.filter((f) => f.status !== 'generating'))
+    }
   }
 
   // Output Actions
-  const handleDownloadOutput = (fileId: string) => {
-    const file = outputFiles.find((f) => f.id === fileId)
-    if (!file) return
-
-    console.log('📥 Downloading:', file.filename)
-    toast.success(`Downloading ${file.filename}`)
-    
-    // Simulate download
-    setTimeout(() => {
-      alert(`Downloading: ${file.filename}\n\n(In production, this would download the actual PDF file)`)
-    }, 100)
+  const handleDownloadOutput = async (fileId: string) => {
+    try {
+      toast.success('Downloading file...')
+      await apiDownloadPdf(fileId)
+      console.log('📥 Downloaded:', fileId)
+    } catch (error) {
+      console.error('Download failed:', error)
+      toast.error('Failed to download file')
+    }
   }
 
   const handlePreviewOutput = (fileId: string) => {
@@ -204,6 +282,31 @@ export default function Home() {
     setOutputFiles((prev) => prev.filter((f) => f.id !== fileId))
     toast.info(`Output file "${file.filename}" deleted`)
     console.log('✅ Deleted output:', file.filename)
+  }
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading folders...</p>
+        </div>
+      </div>
+    )
+  }
+  if (!activeFolder) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-gray-600 mb-4">No folders available</p>
+          <button
+            onClick={handleNewFolder}
+            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+          >
+            Create Your First Folder
+          </button>
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -283,4 +386,5 @@ export default function Home() {
       />
     </div>
   )
+
 }
