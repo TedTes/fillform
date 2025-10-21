@@ -5,6 +5,7 @@ import { mockFolders, getInputFilesForFolder, getOutputFilesForFolder } from '@/
 import type { Folder } from '@/types/folder'
 import FolderPanel from '@/components/FolderPanel'
 import InputFilesSection from '@/components/InputFilesSection'
+import OutputFilesSection from '@/components/OutputFilesSection'
 
 export default function Home() {
   const [activeFolder, setActiveFolder] = useState<Folder>(mockFolders[0])
@@ -24,6 +25,26 @@ export default function Home() {
 
   const handleRemoveFile = (fileId: string) => {
     console.log('Remove file:', fileId)
+    // Will be implemented in interaction commit
+  }
+
+  const handleGenerateOutput = () => {
+    console.log('Generate output')
+    // Will be implemented in interaction commit
+  }
+
+  const handleDownloadOutput = (fileId: string) => {
+    console.log('Download output:', fileId)
+    // Will be implemented in interaction commit
+  }
+
+  const handlePreviewOutput = (fileId: string) => {
+    console.log('Preview output:', fileId)
+    // Will be implemented in interaction commit
+  }
+
+  const handleDeleteOutput = (fileId: string) => {
+    console.log('Delete output:', fileId)
     // Will be implemented in interaction commit
   }
 
@@ -66,78 +87,14 @@ export default function Home() {
             />
 
             {/* Output Files Section */}
-            <section>
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-semibold text-gray-900">
-                  Output Files ({outputFiles.length})
-                </h3>
-                {inputFiles.length > 0 && outputFiles.length === 0 && (
-                  <button className="px-4 py-2 bg-green-600 text-white text-sm font-medium rounded-lg hover:bg-green-700 transition-colors">
-                    Generate Output
-                  </button>
-                )}
-              </div>
-
-              {outputFiles.length === 0 ? (
-                <div className="bg-white border border-gray-200 rounded-lg p-8 text-center">
-                  <p className="text-gray-500">No outputs generated yet</p>
-                  {inputFiles.length > 0 && (
-                    <p className="text-sm text-gray-400 mt-1">
-                      Click "Generate Output" to create filled PDFs
-                    </p>
-                  )}
-                </div>
-              ) : (
-                <div className="space-y-3">
-                  {outputFiles.map((file) => (
-                    <div
-                      key={file.id}
-                      className="bg-white border border-gray-200 rounded-lg p-4 hover:shadow-sm transition-shadow"
-                    >
-                      <div className="flex items-center gap-3">
-                        <span className="text-2xl">📥</span>
-                        <div className="flex-1 min-w-0">
-                          <p className="font-medium text-gray-900 truncate">{file.filename}</p>
-                          <div className="flex items-center gap-3 mt-1">
-                            <p className="text-xs text-gray-500">
-                              {(file.size / (1024 * 1024)).toFixed(1)} MB
-                            </p>
-                            <p className="text-xs text-gray-400">
-                              ← from {file.inputFilename}
-                            </p>
-                            {file.fieldsWritten && (
-                              <span className="text-xs text-green-600">
-                                {file.fieldsWritten} fields
-                              </span>
-                            )}
-                          </div>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <button
-                            className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                            title="Download"
-                          >
-                            📥
-                          </button>
-                          <button
-                            className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                            title="Preview"
-                          >
-                            👁️
-                          </button>
-                          <button
-                            className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                            title="Delete"
-                          >
-                            🗑️
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </section>
+            <OutputFilesSection
+              files={outputFiles}
+              hasInputFiles={inputFiles.length > 0}
+              onGenerate={handleGenerateOutput}
+              onDownload={handleDownloadOutput}
+              onPreview={handlePreviewOutput}
+              onDelete={handleDeleteOutput}
+            />
           </div>
         </main>
       </div>
