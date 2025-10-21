@@ -7,6 +7,7 @@ import FolderPanel from '@/components/FolderPanel'
 import InputFilesSection from '@/components/InputFilesSection'
 import OutputFilesSection from '@/components/OutputFilesSection'
 import GenerateModal from '@/components/GenerateModal'
+import MobileHeader from '@/components/MobileHeader'
 
 export default function Home() {
   // State
@@ -15,6 +16,7 @@ export default function Home() {
   const [inputFiles, setInputFiles] = useState<InputFile[]>(mockInputFiles)
   const [outputFiles, setOutputFiles] = useState<OutputFile[]>(mockOutputFiles)
   const [isGenerateModalOpen, setIsGenerateModalOpen] = useState(false)
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
 
   // Derived state
   const activeFolderInputs = inputFiles.filter((f) => f.folderId === activeFolder.id)
@@ -49,8 +51,7 @@ export default function Home() {
 
   // File Upload Actions
   const handleUploadFiles = () => {
-    // Simulate file upload
-    const fileCount = Math.floor(Math.random() * 3) + 1 // 1-3 files
+    const fileCount = Math.floor(Math.random() * 3) + 1
     const newFiles: InputFile[] = []
 
     for (let i = 0; i < fileCount; i++) {
@@ -58,7 +59,7 @@ export default function Home() {
         id: `input-${Date.now()}-${i}`,
         folderId: activeFolder.id,
         filename: `uploaded_file_${Date.now()}_${i + 1}.pdf`,
-        size: Math.floor(Math.random() * 3000000) + 1000000, // 1-4 MB
+        size: Math.floor(Math.random() * 3000000) + 1000000,
         status: 'uploading',
         uploadedAt: new Date().toISOString(),
       }
@@ -68,7 +69,6 @@ export default function Home() {
     setInputFiles((prev) => [...prev, ...newFiles])
     console.log(`✅ Uploading ${fileCount} file(s)...`)
 
-    // Simulate upload progress
     newFiles.forEach((file, index) => {
       setTimeout(() => {
         setInputFiles((prev) =>
@@ -77,7 +77,6 @@ export default function Home() {
           )
         )
 
-        // Then extracting -> ready
         setTimeout(() => {
           setInputFiles((prev) =>
             prev.map((f) =>
@@ -102,8 +101,6 @@ export default function Home() {
     if (!confirmed) return
 
     setInputFiles((prev) => prev.filter((f) => f.id !== fileId))
-    
-    // Also remove associated outputs
     setOutputFiles((prev) => prev.filter((f) => f.inputFileId !== fileId))
     
     console.log('✅ Removed file:', file.filename)
@@ -122,7 +119,6 @@ export default function Home() {
   const handleGenerate = (selectedFileIds: string[]) => {
     console.log(`✅ Generating outputs for ${selectedFileIds.length} file(s)...`)
 
-    // Create output files for selected inputs
     const newOutputs: OutputFile[] = selectedFileIds.map((inputFileId) => {
       const inputFile = inputFiles.find((f) => f.id === inputFileId)
       if (!inputFile) return null
@@ -133,7 +129,7 @@ export default function Home() {
         inputFileId: inputFile.id,
         inputFilename: inputFile.filename,
         filename: `ACORD_126_filled_${Date.now()}.pdf`,
-        size: inputFile.size + Math.floor(Math.random() * 200000), // Slightly larger
+        size: inputFile.size + Math.floor(Math.random() * 200000),
         status: 'generating' as const,
         generatedAt: new Date().toISOString(),
       }
@@ -141,7 +137,6 @@ export default function Home() {
 
     setOutputFiles((prev) => [...prev, ...newOutputs])
 
-    // Simulate generation completion
     setTimeout(() => {
       setOutputFiles((prev) =>
         prev.map((f) =>
@@ -190,31 +185,48 @@ export default function Home() {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
-      <header className="bg-white border-b border-gray-200">
-        <div className="px-6 py-4">
-          <h1 className="text-2xl font-bold text-gray-900">AutoFil</h1>
-          <p className="text-sm text-gray-600">ACORD Form Filler</p>
+      <header className="bg-white border-b border-gray-200 relative">
+        <div className="px-6 py-4 lg:px-6">
+          <div className="flex items-center gap-4">
+            {/* Mobile Menu Button */}
+            <button
+              onClick={() => setIsMobileMenuOpen(true)}
+              className="lg:hidden p-2 -ml-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
+            >
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+              </svg>
+            </button>
+
+            {/* Logo & Title */}
+            <div>
+              <h1 className="text-xl lg:text-2xl font-bold text-gray-900">AutoFil</h1>
+              <p className="text-xs lg:text-sm text-gray-600">ACORD Form Filler</p>
+            </div>
+          </div>
         </div>
       </header>
 
       {/* Main Layout: Two Panels */}
-      <div className="flex h-[calc(100vh-80px)]">
+      <div className="flex h-[calc(100vh-65px)] lg:h-[calc(100vh-80px)]">
         {/* Left Panel: Folders */}
         <FolderPanel
           folders={folders}
           activeFolder={activeFolder}
           onFolderClick={setActiveFolder}
           onNewFolder={handleNewFolder}
+          isMobileOpen={isMobileMenuOpen}
+          onMobileToggle={() => setIsMobileMenuOpen(false)}
         />
 
         {/* Right Panel: Content */}
-        <main className="flex-1 overflow-y-auto">
-          <div className="p-6 max-w-6xl mx-auto">
+        <main className="flex-1 overflow-y-auto w-full">
+          <div className="p-4 lg:p-6 max-w-6xl mx-auto">
             {/* Folder Header */}
-            <div className="mb-6">
-              <h2 className="text-xl font-bold text-gray-900">{activeFolder.name}</h2>
-              <p className="text-sm text-gray-500">
-                {activeFolderInputs.length} input files • {activeFolderOutputs.length} output files
+            <div className="mb-4 lg:mb-6">
+              <h2 className="text-lg lg:text-xl font-bold text-gray-900">{activeFolder.name}</h2>
+              <p className="text-xs lg:text-sm text-gray-500">
+                {activeFolderInputs.length} input • {activeFolderOutputs.length} output
               </p>
             </div>
 

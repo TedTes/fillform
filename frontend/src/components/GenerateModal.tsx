@@ -1,6 +1,5 @@
 /**
- * Generate modal component.
- * Allows user to select files and shows generation progress.
+ * Generate modal 
  */
 
 'use client'
@@ -52,14 +51,11 @@ export default function GenerateModal({
     setIsGenerating(true)
     setProgress(0)
 
-    // Simulate progress (will be replaced with real generation in interaction commit)
     const interval = setInterval(() => {
       setProgress((prev) => {
         if (prev >= 100) {
           clearInterval(interval)
-          // Call the actual generate function
           onGenerate(selectedFileIds)
-          // Close modal after generation
           setTimeout(() => {
             setIsGenerating(false)
             setProgress(0)
@@ -83,12 +79,12 @@ export default function GenerateModal({
 
       {/* Modal */}
       <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-        <div className="bg-white rounded-xl shadow-2xl max-w-2xl w-full max-h-[80vh] overflow-hidden flex flex-col">
+        <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl max-h-[90vh] lg:max-h-[80vh] overflow-hidden flex flex-col">
           {/* Header */}
-          <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
+          <div className="px-4 lg:px-6 py-3 lg:py-4 border-b border-gray-200 flex items-center justify-between">
             <div>
-              <h2 className="text-xl font-bold text-gray-900">Generate Output Files</h2>
-              <p className="text-sm text-gray-500 mt-1">
+              <h2 className="text-lg lg:text-xl font-bold text-gray-900">Generate Output Files</h2>
+              <p className="text-xs lg:text-sm text-gray-500 mt-1 hidden sm:block">
                 Select files to process and generate filled PDFs
               </p>
             </div>
@@ -101,21 +97,18 @@ export default function GenerateModal({
           </div>
 
           {/* Content */}
-          <div className="flex-1 overflow-y-auto px-6 py-4">
+          <div className="flex-1 overflow-y-auto px-4 lg:px-6 py-3 lg:py-4">
             {!isGenerating ? (
               <>
                 {/* Form Type Selector */}
-                <div className="mb-6">
+                <div className="mb-4 lg:mb-6">
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Output Form Type
                   </label>
-                  <select className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors">
+                  <select className="w-full px-3 lg:px-4 py-2 text-sm lg:text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors">
                     <option value="126">ACORD 126 - Commercial General Liability</option>
                     <option value="125" disabled>
-                      ACORD 125 - Commercial Insurance (Coming Soon)
-                    </option>
-                    <option value="140" disabled>
-                      ACORD 140 - Property Section (Coming Soon)
+                      ACORD 125 (Coming Soon)
                     </option>
                   </select>
                 </div>
@@ -130,30 +123,29 @@ export default function GenerateModal({
                 />
               </>
             ) : (
-              /* Progress View */
-              <div className="py-8">
+              <div className="py-6 lg:py-8">
                 <ProgressBar progress={progress} />
               </div>
             )}
           </div>
 
           {/* Footer */}
-          <div className="px-6 py-4 border-t border-gray-200 flex items-center justify-between bg-gray-50">
-            <p className="text-sm text-gray-600">
-              {selectedFileIds.length} of {files.length} files selected
+          <div className="px-4 lg:px-6 py-3 lg:py-4 border-t border-gray-200 flex flex-col sm:flex-row items-center justify-between gap-3 bg-gray-50">
+            <p className="text-xs lg:text-sm text-gray-600 order-2 sm:order-1">
+              {selectedFileIds.length} of {files.length} selected
             </p>
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-3 w-full sm:w-auto order-1 sm:order-2">
               <button
                 onClick={onClose}
                 disabled={isGenerating}
-                className="px-4 py-2 text-gray-700 hover:text-gray-900 font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                className="flex-1 sm:flex-none px-4 py-2 text-sm lg:text-base text-gray-700 hover:text-gray-900 font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 Cancel
               </button>
               <button
                 onClick={handleGenerate}
                 disabled={selectedFileIds.length === 0 || isGenerating}
-                className="px-6 py-2 bg-green-600 hover:bg-green-700 active:bg-green-800 text-white font-medium rounded-lg shadow-sm hover:shadow-md transition-all disabled:bg-gray-300 disabled:cursor-not-allowed disabled:shadow-none flex items-center gap-2"
+                className="flex-1 sm:flex-none px-4 lg:px-6 py-2 text-sm lg:text-base bg-green-600 hover:bg-green-700 active:bg-green-800 text-white font-medium rounded-lg shadow-sm hover:shadow-md transition-all disabled:bg-gray-300 disabled:cursor-not-allowed disabled:shadow-none flex items-center justify-center gap-2"
               >
                 {isGenerating ? (
                   <>
@@ -172,7 +164,8 @@ export default function GenerateModal({
                         d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
                       />
                     </svg>
-                    Generating...
+                    <span className="hidden sm:inline">Generating...</span>
+                    <span className="sm:hidden">...</span>
                   </>
                 ) : (
                   <>
@@ -184,7 +177,10 @@ export default function GenerateModal({
                         d="M13 10V3L4 14h7v7l9-11h-7z"
                       />
                     </svg>
-                    Generate {selectedFileIds.length} {selectedFileIds.length === 1 ? 'File' : 'Files'}
+                    <span className="hidden sm:inline">
+                      Generate {selectedFileIds.length} {selectedFileIds.length === 1 ? 'File' : 'Files'}
+                    </span>
+                    <span className="sm:hidden">Generate</span>
                   </>
                 )}
               </button>
