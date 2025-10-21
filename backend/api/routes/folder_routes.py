@@ -6,9 +6,11 @@ Endpoints for folder management.
 
 from flask import Blueprint, request, jsonify
 from services.folder_service import FolderService
+from services.submission_service import SubmissionService
 
 folder_bp = Blueprint('folders', __name__)
 folder_service = FolderService()
+submission_service = SubmissionService()
 
 
 @folder_bp.route('/folders', methods=['GET'])
@@ -69,19 +71,29 @@ def create_folder():
 @folder_bp.route('/folders/<folder_id>', methods=['GET'])
 def get_folder(folder_id):
     """
-    Get folder by ID.
+    Get folder by ID with all submissions.
     
     Args:
         folder_id: Folder identifier
     
     Returns:
-        JSON with folder metadata
+        JSON with folder metadata and submissions
     """
     try:
         folder = folder_service.get_folder(folder_id)
         
         if not folder:
             return jsonify({'error': 'Folder not found'}), 404
+        
+        # Get detailed submission info
+        submissions = []
+        for sub_entry in folder.get('submissions', []):
+            submission_id = sub_entry['submission_id']
+            submission = submission_service.get_submission(submission_id)
+            if submission:
+                submissions.append(submission)
+        
+        folder['submissions_detailed'] = submissions
         
         return jsonify({
             'success': True,
