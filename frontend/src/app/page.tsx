@@ -3,12 +3,18 @@
 import { useState } from 'react'
 import { mockFolders, getInputFilesForFolder, getOutputFilesForFolder } from '@/lib/mock-data'
 import type { Folder } from '@/types/folder'
+import FolderPanel from '@/components/FolderPanel'
 
 export default function Home() {
   const [activeFolder, setActiveFolder] = useState<Folder>(mockFolders[0])
 
   const inputFiles = getInputFilesForFolder(activeFolder.id)
   const outputFiles = getOutputFilesForFolder(activeFolder.id)
+
+  const handleNewFolder = () => {
+    console.log('Create new folder')
+    // Will be implemented in interaction commit
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -23,39 +29,12 @@ export default function Home() {
       {/* Main Layout: Two Panels */}
       <div className="flex h-[calc(100vh-80px)]">
         {/* Left Panel: Folders */}
-        <aside className="w-64 bg-white border-r border-gray-200 overflow-y-auto">
-          <div className="p-4">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-sm font-semibold text-gray-700 uppercase">Folders</h2>
-              <button className="text-blue-600 hover:text-blue-700 text-sm font-medium">
-                + New
-              </button>
-            </div>
-
-            {/* Folder List */}
-            <div className="space-y-2">
-              {mockFolders.map((folder) => (
-                <button
-                  key={folder.id}
-                  onClick={() => setActiveFolder(folder)}
-                  className={`w-full text-left px-3 py-2 rounded-lg transition-colors ${
-                    activeFolder.id === folder.id
-                      ? 'bg-blue-50 text-blue-900 border border-blue-200'
-                      : 'hover:bg-gray-50 text-gray-700 border border-transparent'
-                  }`}
-                >
-                  <div className="flex items-center gap-2">
-                    <span className="text-lg">📁</span>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium truncate">{folder.name}</p>
-                      <p className="text-xs text-gray-500">{folder.fileCount} files</p>
-                    </div>
-                  </div>
-                </button>
-              ))}
-            </div>
-          </div>
-        </aside>
+        <FolderPanel
+          folders={mockFolders}
+          activeFolder={activeFolder}
+          onFolderClick={setActiveFolder}
+          onNewFolder={handleNewFolder}
+        />
 
         {/* Right Panel: Content */}
         <main className="flex-1 overflow-y-auto">
