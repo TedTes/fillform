@@ -1,5 +1,5 @@
 /**
- * Collapsible list component for showing more/less items.
+ * Collapsible list component
  */
 
 'use client'
@@ -20,16 +20,26 @@ export default function CollapsibleList({
   return (
     <button
       onClick={onToggle}
-      className="w-full mt-3 px-4 py-3 bg-gray-50 hover:bg-gray-100 border border-gray-200 rounded-lg transition-colors flex items-center justify-center gap-2 text-sm font-medium text-gray-700"
+      className="
+        group
+        w-full mt-4 px-4 py-3 
+        bg-white hover:bg-gray-50 
+        border border-gray-200 hover:border-gray-300
+        rounded-lg 
+        shadow-sm hover:shadow-md
+        transition-all duration-200
+        flex items-center justify-center gap-2 
+        text-sm font-medium text-gray-700 hover:text-gray-900
+      "
     >
       {isExpanded ? (
         <>
-          <ChevronUp className="w-4 h-4" />
+          <ChevronUp className="w-4 h-4 transition-transform group-hover:-translate-y-0.5" />
           Show Less
         </>
       ) : (
         <>
-          <ChevronDown className="w-4 h-4" />
+          <ChevronDown className="w-4 h-4 transition-transform group-hover:translate-y-0.5" />
           Show {hiddenCount} More
         </>
       )}
