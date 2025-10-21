@@ -20,6 +20,7 @@ def upload_pdf():
     
     Request:
         - file: PDF file (multipart/form-data)
+        - folder_id: Optional folder ID (form data)
     
     Returns:
         JSON with submission_id and extracted data
@@ -38,9 +39,12 @@ def upload_pdf():
     if not file.filename.lower().endswith('.pdf'):
         return jsonify({'error': 'Only PDF files are allowed'}), 400
     
+    # Get optional folder_id
+    folder_id = request.form.get('folder_id')
+    
     try:
         # Process upload and extraction
-        result = submission_service.upload_and_extract(file)
+        result = submission_service.upload_and_extract(file, folder_id)
         
         return jsonify({
             'success': True,
@@ -136,7 +140,7 @@ def fill_pdf(submission_id):
             'fill_report': {
                 'written': result['written'],
                 'skipped': result['skipped'],
-                'warnings': result['warnings']
+                'warnings': result.get('notes', [])
             },
             'download_url': f'/api/submissions/{submission_id}/download'
         }), 200

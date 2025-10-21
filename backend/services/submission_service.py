@@ -39,12 +39,13 @@ class SubmissionService:
         self.extractor = Acord126Extractor()
         self.filler = Acord126Filler()
     
-    def upload_and_extract(self, file):
+    def upload_and_extract(self, file, folder_id: str = None):
         """
         Upload PDF and extract data.
         
         Args:
             file: FileStorage object from Flask request
+            folder_id: Optional folder ID to store in
         
         Returns:
             Dictionary with submission_id, extracted data, and metadata
@@ -52,9 +53,19 @@ class SubmissionService:
         # Generate unique submission ID
         submission_id = str(uuid.uuid4())
         
+        # Determine storage path
+        if folder_id:
+            # Store in folder structure
+            from services.folder_service import FolderService
+            folder_service = FolderService()
+            upload_dir = folder_service.get_inputs_path(folder_id)
+        else:
+            # Store in legacy uploads directory
+            upload_dir = self.uploads_dir
+        
         # Save uploaded file
         filename = secure_filename(file.filename)
-        upload_path = os.path.join(self.uploads_dir, f"{submission_id}_{filename}")
+        upload_path = os.path.join(upload_dir, f"{submission_id}_{filename}")
         file.save(upload_path)
         
         # Extract data
@@ -71,6 +82,7 @@ class SubmissionService:
         # Save submission metadata
         metadata = {
             'submission_id': submission_id,
+            'folder_id': folder_id,
             'filename': filename,
             'upload_path': upload_path,
             'data_path': data_path,
@@ -84,6 +96,12 @@ class SubmissionService:
         with open(metadata_path, 'w') as f:
             json.dump(metadata, f, indent=2)
         
+        # Add to folder if folder_id provided
+        if folder_id:
+            from services.folder_service import FolderService
+            folder_service = FolderService()
+            folder_service.add_submission(folder_id, submission_id, filename)
+        
         return {
             'submission_id': submission_id,
             'confidence': extraction_result.confidence,
@@ -91,7 +109,7 @@ class SubmissionService:
             'data': extraction_result.json
         }
     
-    def get_submission(self, submission_id):
+    def get_submission(self, submission_id: str):
         """
         Get submission data.
         
@@ -115,6 +133,7 @@ class SubmissionService:
         
         return {
             'submission_id': submission_id,
+            'folder_id': metadata.get('folder_id'),
             'filename': metadata['filename'],
             'status': metadata['status'],
             'uploaded_at': metadata['uploaded_at'],
@@ -123,7 +142,7 @@ class SubmissionService:
             'data': data
         }
     
-    def update_data(self, submission_id, data):
+    def update_data(self, submission_id: str, data):
         """
         Update submission data.
         
@@ -145,7 +164,7 @@ class SubmissionService:
         
         return self.get_submission(submission_id)
     
-    def fill_pdf(self, submission_id):
+    def fill_pdf(self, submission_id: str):
         """
         Fill PDF with data.
         
@@ -155,11 +174,17 @@ class SubmissionService:
         Returns:
             Fill report
         """
+        # Load metadata
+        metadata_path = os.path.join(self.data_dir, f"{submission_id}_meta.json")
+        
+        if not os.path.exists(metadata_path):
+            raise ValueError("Submission not found")
+        
+        with open(metadata_path, 'r') as f:
+            metadata = json.load(f)
+        
         # Load data
         data_path = os.path.join(self.data_dir, f"{submission_id}.json")
-        
-        if not os.path.exists(data_path):
-            raise ValueError("Submission not found")
         
         with open(data_path, 'r') as f:
             data = json.load(f)
@@ -168,15 +193,20 @@ class SubmissionService:
         if not os.path.exists(self.template_path):
             raise ValueError(f"Template not found: {self.template_path}")
         
+        # Determine output path
+        folder_id = metadata.get('folder_id')
+        if folder_id:
+            from services.folder_service import FolderService
+            folder_service = FolderService()
+            output_dir = folder_service.get_outputs_path(folder_id)
+        else:
+            output_dir = self.outputs_dir
+        
         # Fill PDF
-        output_path = os.path.join(self.outputs_dir, f"{submission_id}_filled.pdf")
+        output_path = os.path.join(output_dir, f"{submission_id}_filled.pdf")
         fill_report = self.filler.fill(self.template_path, data, output_path)
         
         # Update metadata
-        metadata_path = os.path.join(self.data_dir, f"{submission_id}_meta.json")
-        with open(metadata_path, 'r') as f:
-            metadata = json.load(f)
-        
         metadata['status'] = 'filled'
         metadata['output_path'] = output_path
         metadata['filled_at'] = datetime.utcnow().isoformat()
@@ -187,7 +217,7 @@ class SubmissionService:
         
         return fill_report
     
-    def get_output_path(self, submission_id):
+    def get_output_path(self, submission_id: str):
         """
         Get output PDF path.
         
@@ -197,5 +227,16 @@ class SubmissionService:
         Returns:
             Path to filled PDF
         """
+        # Check metadata for folder-based path
+        metadata_path = os.path.join(self.data_dir, f"{submission_id}_meta.json")
+        
+        if os.path.exists(metadata_path):
+            with open(metadata_path, 'r') as f:
+                metadata = json.load(f)
+            
+            if 'output_path' in metadata:
+                return metadata['output_path']
+        
+        # Fallback to legacy path
         output_path = os.path.join(self.outputs_dir, f"{submission_id}_filled.pdf")
         return output_path
