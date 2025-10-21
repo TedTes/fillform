@@ -3,6 +3,7 @@ import { Inter } from 'next/font/google'
 import './globals.css'
 import { ToastProvider } from '@/contexts/ToastContext'
 import ToastContainer from '@/components/ToastContainer'
+import BackendStatusBanner from '@/components/BackendStatusBanner'
 
 const inter = Inter({ subsets: ['latin'] })
 
@@ -21,6 +22,7 @@ export default function RootLayout({
       <body className={inter.className}>
         <ToastProvider>
           <div className="min-h-screen bg-gray-50">
+            <BackendStatusBanner />
             {children}
           </div>
           <ToastContainer />
