@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { mockFolders, getInputFilesForFolder, getOutputFilesForFolder } from '@/lib/mock-data'
 import type { Folder } from '@/types/folder'
 import FolderPanel from '@/components/FolderPanel'
+import InputFilesSection from '@/components/InputFilesSection'
 
 export default function Home() {
   const [activeFolder, setActiveFolder] = useState<Folder>(mockFolders[0])
@@ -13,6 +14,16 @@ export default function Home() {
 
   const handleNewFolder = () => {
     console.log('Create new folder')
+    // Will be implemented in interaction commit
+  }
+
+  const handleUploadFiles = () => {
+    console.log('Upload files')
+    // Will be implemented in interaction commit
+  }
+
+  const handleRemoveFile = (fileId: string) => {
+    console.log('Remove file:', fileId)
     // Will be implemented in interaction commit
   }
 
@@ -48,64 +59,11 @@ export default function Home() {
             </div>
 
             {/* Input Files Section */}
-            <section className="mb-8">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-semibold text-gray-900">
-                  Input Files ({inputFiles.length})
-                </h3>
-                <button className="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors">
-                  + Upload Files
-                </button>
-              </div>
-
-              {inputFiles.length === 0 ? (
-                <div className="bg-white border-2 border-dashed border-gray-300 rounded-lg p-8 text-center">
-                  <p className="text-gray-500">No files uploaded yet</p>
-                  <p className="text-sm text-gray-400 mt-1">Click "Upload Files" to get started</p>
-                </div>
-              ) : (
-                <div className="space-y-3">
-                  {inputFiles.map((file) => (
-                    <div
-                      key={file.id}
-                      className="bg-white border border-gray-200 rounded-lg p-4 hover:shadow-sm transition-shadow"
-                    >
-                      <div className="flex items-center gap-3">
-                        <span className="text-2xl">📄</span>
-                        <div className="flex-1 min-w-0">
-                          <p className="font-medium text-gray-900 truncate">{file.filename}</p>
-                          <div className="flex items-center gap-3 mt-1">
-                            <p className="text-xs text-gray-500">
-                              {(file.size / (1024 * 1024)).toFixed(1)} MB
-                            </p>
-                            {file.confidence && (
-                              <span className="text-xs text-green-600">
-                                ✓ {Math.round(file.confidence * 100)}% confidence
-                              </span>
-                            )}
-                          </div>
-                        </div>
-                        <button className="text-gray-400 hover:text-red-600 transition-colors">
-                          <svg
-                            className="w-5 h-5"
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
-                          >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth={2}
-                              d="M6 18L18 6M6 6l12 12"
-                            />
-                          </svg>
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </section>
+            <InputFilesSection
+              files={inputFiles}
+              onUpload={handleUploadFiles}
+              onRemove={handleRemoveFile}
+            />
 
             {/* Output Files Section */}
             <section>
