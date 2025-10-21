@@ -1,11 +1,12 @@
 /**
- * Single output file card component
+ * Single output file card component - with loading state.
  */
 
 'use client'
 
 import { OutputFile } from '@/types/folder'
 import { Download, Eye, Trash2 } from 'lucide-react'
+import LoadingSpinner from './LoadingSpinner'
 
 interface OutputFileCardProps {
   file: OutputFile
@@ -20,13 +21,23 @@ export default function OutputFileCard({
   onPreview,
   onDelete,
 }: OutputFileCardProps) {
+  const isGenerating = file.status === 'generating'
+
   return (
     <div className="group bg-white border border-gray-200 rounded-lg p-4 hover:shadow-md hover:border-gray-300 transition-all duration-200">
       <div className="flex items-center gap-4">
-        {/* File Icon */}
+        {/* File Icon or Loading */}
         <div className="flex-shrink-0">
-          <div className="w-12 h-12 bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg flex items-center justify-center group-hover:from-blue-100 group-hover:to-blue-200 transition-all">
-            <span className="text-2xl">📥</span>
+          <div className={`w-12 h-12 rounded-lg flex items-center justify-center transition-all ${
+            isGenerating 
+              ? 'bg-yellow-50' 
+              : 'bg-gradient-to-br from-blue-50 to-blue-100 group-hover:from-blue-100 group-hover:to-blue-200'
+          }`}>
+            {isGenerating ? (
+              <LoadingSpinner size="sm" />
+            ) : (
+              <span className="text-2xl">📥</span>
+            )}
           </div>
         </div>
 
@@ -54,7 +65,7 @@ export default function OutputFileCard({
             </span>
 
             {/* Fields Info */}
-            {file.fieldsWritten && (
+            {file.fieldsWritten && !isGenerating && (
               <span className="inline-flex items-center gap-1 text-xs text-green-600 font-medium bg-green-50 px-2 py-0.5 rounded border border-green-200">
                 <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
                   <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
@@ -69,29 +80,38 @@ export default function OutputFileCard({
         </div>
 
         {/* Action Buttons */}
-        <div className="flex items-center gap-1 flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-          <button
-            onClick={onDownload}
-            className="p-2.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all duration-200 hover:scale-110"
-            title="Download"
-          >
-            <Download className="w-4.5 h-4.5" strokeWidth={2.5} />
-          </button>
-          <button
-            onClick={onPreview}
-            className="p-2.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all duration-200 hover:scale-110"
-            title="Preview"
-          >
-            <Eye className="w-4.5 h-4.5" strokeWidth={2.5} />
-          </button>
-          <button
-            onClick={onDelete}
-            className="p-2.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all duration-200 hover:scale-110"
-            title="Delete"
-          >
-            <Trash2 className="w-4.5 h-4.5" strokeWidth={2.5} />
-          </button>
-        </div>
+        {!isGenerating && (
+          <div className="flex items-center gap-1 flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+            <button
+              onClick={onDownload}
+              className="p-2.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all duration-200 hover:scale-110"
+              title="Download"
+            >
+              <Download className="w-4.5 h-4.5" strokeWidth={2.5} />
+            </button>
+            <button
+              onClick={onPreview}
+              className="p-2.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all duration-200 hover:scale-110"
+              title="Preview"
+            >
+              <Eye className="w-4.5 h-4.5" strokeWidth={2.5} />
+            </button>
+            <button
+              onClick={onDelete}
+              className="p-2.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all duration-200 hover:scale-110"
+              title="Delete"
+            >
+              <Trash2 className="w-4.5 h-4.5" strokeWidth={2.5} />
+            </button>
+          </div>
+        )}
+
+        {/* Generating Text */}
+        {isGenerating && (
+          <span className="text-xs text-yellow-600 font-medium flex-shrink-0">
+            Generating...
+          </span>
+        )}
       </div>
     </div>
   )
@@ -104,7 +124,12 @@ function StatusBadge({ status }: { status: OutputFile['status'] }) {
   const config = {
     generating: {
       text: 'Generating',
-      icon: '⚙️',
+      icon: (
+        <svg className="w-3 h-3 animate-spin" fill="none" viewBox="0 0 24 24">
+          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+        </svg>
+      ),
       className: 'bg-yellow-50 text-yellow-700 border border-yellow-200',
     },
     ready: {
@@ -123,7 +148,7 @@ function StatusBadge({ status }: { status: OutputFile['status'] }) {
 
   return (
     <span className={`inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium rounded border ${className}`}>
-      <span className="text-xs">{icon}</span>
+      {typeof icon === 'string' ? <span className="text-xs">{icon}</span> : icon}
       {text}
     </span>
   )

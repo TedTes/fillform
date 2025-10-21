@@ -1,10 +1,11 @@
 /**
- * Single input file card component 
+ * Single input file card component - with loading states.
  */
 
 'use client'
 
 import { InputFile } from '@/types/folder'
+import LoadingSpinner from './LoadingSpinner'
 
 interface InputFileCardProps {
   file: InputFile
@@ -12,13 +13,21 @@ interface InputFileCardProps {
 }
 
 export default function InputFileCard({ file, onRemove }: InputFileCardProps) {
+  const isProcessing = file.status === 'uploading' || file.status === 'extracting'
+
   return (
     <div className="group bg-white border border-gray-200 rounded-lg p-4 hover:shadow-md hover:border-gray-300 transition-all duration-200">
       <div className="flex items-center gap-4">
-        {/* File Icon */}
+        {/* File Icon or Loading */}
         <div className="flex-shrink-0">
-          <div className="w-12 h-12 bg-gray-50 rounded-lg flex items-center justify-center group-hover:bg-blue-50 transition-colors">
-            <span className="text-2xl">📄</span>
+          <div className={`w-12 h-12 rounded-lg flex items-center justify-center transition-colors ${
+            isProcessing ? 'bg-blue-50' : 'bg-gray-50 group-hover:bg-blue-50'
+          }`}>
+            {isProcessing ? (
+              <LoadingSpinner size="sm" />
+            ) : (
+              <span className="text-2xl">📄</span>
+            )}
           </div>
         </div>
 
@@ -53,15 +62,17 @@ export default function InputFileCard({ file, onRemove }: InputFileCardProps) {
         </div>
 
         {/* Remove Button */}
-        <button
-          onClick={onRemove}
-          className="flex-shrink-0 p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all duration-200 opacity-0 group-hover:opacity-100"
-          title="Remove file"
-        >
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-          </svg>
-        </button>
+        {!isProcessing && (
+          <button
+            onClick={onRemove}
+            className="flex-shrink-0 p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all duration-200 opacity-0 group-hover:opacity-100"
+            title="Remove file"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        )}
       </div>
     </div>
   )
@@ -74,7 +85,12 @@ function StatusBadge({ status }: { status: InputFile['status'] }) {
   const config = {
     uploading: {
       text: 'Uploading',
-      icon: '⏫',
+      icon: (
+        <svg className="w-3 h-3 animate-spin" fill="none" viewBox="0 0 24 24">
+          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+        </svg>
+      ),
       className: 'bg-blue-50 text-blue-700 border border-blue-200',
     },
     uploaded: {
@@ -84,7 +100,12 @@ function StatusBadge({ status }: { status: InputFile['status'] }) {
     },
     extracting: {
       text: 'Extracting',
-      icon: '⚙️',
+      icon: (
+        <svg className="w-3 h-3 animate-spin" fill="none" viewBox="0 0 24 24">
+          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+        </svg>
+      ),
       className: 'bg-yellow-50 text-yellow-700 border border-yellow-200',
     },
     ready: {
@@ -103,7 +124,7 @@ function StatusBadge({ status }: { status: InputFile['status'] }) {
 
   return (
     <span className={`inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium rounded border ${className}`}>
-      <span className="text-xs">{icon}</span>
+      {typeof icon === 'string' ? <span className="text-xs">{icon}</span> : icon}
       {text}
     </span>
   )

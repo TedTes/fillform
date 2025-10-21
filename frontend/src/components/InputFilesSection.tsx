@@ -1,5 +1,5 @@
 /**
- * Input files section - top section of right panel.
+ * Input files section - with enhanced empty state.
  */
 
 'use client'
@@ -7,6 +7,7 @@
 import { InputFile } from '@/types/folder'
 import InputFileCard from './InputFileCard'
 import FileUploadButton from './FileUploadButton'
+import EmptyState from './EmptyState'
 
 interface InputFilesSectionProps {
   files: InputFile[]
@@ -31,10 +32,10 @@ export default function InputFilesSection({
 
       {/* File List or Empty State */}
       {files.length === 0 ? (
-        <div className="bg-white border-2 border-dashed border-gray-300 rounded-lg p-8 text-center">
-          <div className="flex flex-col items-center">
+        <EmptyState
+          icon={
             <svg
-              className="w-12 h-12 text-gray-400 mb-3"
+              className="w-16 h-16"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -42,16 +43,18 @@ export default function InputFilesSection({
               <path
                 strokeLinecap="round"
                 strokeLinejoin="round"
-                strokeWidth={2}
+                strokeWidth={1.5}
                 d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"
               />
             </svg>
-            <p className="text-gray-500 font-medium">No files uploaded yet</p>
-            <p className="text-sm text-gray-400 mt-1">
-              Click "Upload Files" to get started
-            </p>
-          </div>
-        </div>
+          }
+          title="No files uploaded yet"
+          description="Upload ACORD 126 PDF files to get started. You can drag and drop or click the upload button."
+          action={{
+            label: 'Upload Files',
+            onClick: onUpload,
+          }}
+        />
       ) : (
         <div className="space-y-3">
           {files.map((file) => (

@@ -1,13 +1,14 @@
 /**
- * Output files section - bottom section of right panel.
+ * Output files section - with enhanced empty states.
  */
 
 'use client'
 
 import { useState } from 'react'
 import { OutputFile } from '@/types/folder'
-import OutputFileCard from './OutputFileCard' 
+import OutputFileCard from './OutputFileCard'
 import CollapsibleList from './CollapsibleList'
+import EmptyState from './EmptyState'
 
 interface OutputFilesSectionProps {
   files: OutputFile[]
@@ -28,7 +29,6 @@ export default function OutputFilesSection({
 }: OutputFilesSectionProps) {
   const [showAll, setShowAll] = useState(false)
 
-  // Show recent 3 files by default
   const recentFiles = files.slice(0, 3)
   const olderFiles = files.slice(3)
   const hasOlderFiles = olderFiles.length > 0
@@ -67,10 +67,10 @@ export default function OutputFilesSection({
 
       {/* File List or Empty State */}
       {files.length === 0 ? (
-        <div className="bg-white border border-gray-200 rounded-lg p-8 text-center">
-          <div className="flex flex-col items-center">
+        <EmptyState
+          icon={
             <svg
-              className="w-12 h-12 text-gray-400 mb-3"
+              className="w-16 h-16"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -78,18 +78,26 @@ export default function OutputFilesSection({
               <path
                 strokeLinecap="round"
                 strokeLinejoin="round"
-                strokeWidth={2}
+                strokeWidth={1.5}
                 d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
               />
             </svg>
-            <p className="text-gray-500 font-medium">No outputs generated yet</p>
-            {hasInputFiles && (
-              <p className="text-sm text-gray-400 mt-1">
-                Click "Generate Output" to create filled PDFs
-              </p>
-            )}
-          </div>
-        </div>
+          }
+          title={hasInputFiles ? 'No outputs generated yet' : 'Upload files first'}
+          description={
+            hasInputFiles
+              ? 'Click "Generate Output" to create filled ACORD 126 PDFs from your input files.'
+              : 'Upload input files before generating outputs.'
+          }
+          action={
+            hasInputFiles
+              ? {
+                  label: 'Generate Output',
+                  onClick: onGenerate,
+                }
+              : undefined
+          }
+        />
       ) : (
         <div>
           {/* File List */}
