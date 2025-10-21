@@ -7,9 +7,12 @@ import FolderPanel from '@/components/FolderPanel'
 import InputFilesSection from '@/components/InputFilesSection'
 import OutputFilesSection from '@/components/OutputFilesSection'
 import GenerateModal from '@/components/GenerateModal'
-import MobileHeader from '@/components/MobileHeader'
+import useToast from '@/hooks/useToast'
 
 export default function Home() {
+  // Toast
+  const toast = useToast()
+
   // State
   const [folders, setFolders] = useState<Folder[]>(mockFolders)
   const [activeFolder, setActiveFolder] = useState<Folder>(mockFolders[0])
@@ -46,6 +49,7 @@ export default function Home() {
 
     setFolders((prev) => [...prev, newFolder])
     setActiveFolder(newFolder)
+    toast.success(`Folder "${name.trim()}" created successfully`)
     console.log('✅ Created folder:', name)
   }
 
@@ -67,6 +71,7 @@ export default function Home() {
     }
 
     setInputFiles((prev) => [...prev, ...newFiles])
+    toast.info(`Uploading ${fileCount} file${fileCount > 1 ? 's' : ''}...`)
     console.log(`✅ Uploading ${fileCount} file(s)...`)
 
     newFiles.forEach((file, index) => {
@@ -85,6 +90,12 @@ export default function Home() {
                 : f
             )
           )
+          
+          // Show success toast only for the last file
+          if (index === newFiles.length - 1) {
+            toast.success(`${fileCount} file${fileCount > 1 ? 's' : ''} uploaded successfully`)
+          }
+          
           console.log(`✅ File ready: ${file.filename}`)
         }, 1500)
       }, 1000 * (index + 1))
@@ -103,6 +114,7 @@ export default function Home() {
     setInputFiles((prev) => prev.filter((f) => f.id !== fileId))
     setOutputFiles((prev) => prev.filter((f) => f.inputFileId !== fileId))
     
+    toast.info(`File "${file.filename}" removed`)
     console.log('✅ Removed file:', file.filename)
     updateFolderCounts()
   }
@@ -110,7 +122,7 @@ export default function Home() {
   // Generate Actions
   const handleGenerateOutput = () => {
     if (activeFolderInputs.length === 0) {
-      alert('No input files to process')
+      toast.warning('No input files to process')
       return
     }
     setIsGenerateModalOpen(true)
@@ -118,6 +130,7 @@ export default function Home() {
 
   const handleGenerate = (selectedFileIds: string[]) => {
     console.log(`✅ Generating outputs for ${selectedFileIds.length} file(s)...`)
+    toast.info(`Generating ${selectedFileIds.length} output file${selectedFileIds.length > 1 ? 's' : ''}...`)
 
     const newOutputs: OutputFile[] = selectedFileIds.map((inputFileId) => {
       const inputFile = inputFiles.find((f) => f.id === inputFileId)
@@ -150,6 +163,7 @@ export default function Home() {
             : f
         )
       )
+      toast.success(`${selectedFileIds.length} output file${selectedFileIds.length > 1 ? 's' : ''} generated successfully`)
       console.log('✅ Generation complete!')
     }, 3000)
   }
@@ -160,7 +174,12 @@ export default function Home() {
     if (!file) return
 
     console.log('📥 Downloading:', file.filename)
-    alert(`Downloading: ${file.filename}\n\n(In production, this would download the actual PDF file)`)
+    toast.success(`Downloading ${file.filename}`)
+    
+    // Simulate download
+    setTimeout(() => {
+      alert(`Downloading: ${file.filename}\n\n(In production, this would download the actual PDF file)`)
+    }, 100)
   }
 
   const handlePreviewOutput = (fileId: string) => {
@@ -168,7 +187,11 @@ export default function Home() {
     if (!file) return
 
     console.log('👁️ Previewing:', file.filename)
-    alert(`Preview: ${file.filename}\n\n(In production, this would open the PDF in a modal viewer)`)
+    toast.info(`Opening preview for ${file.filename}`)
+    
+    setTimeout(() => {
+      alert(`Preview: ${file.filename}\n\n(In production, this would open the PDF in a modal viewer)`)
+    }, 100)
   }
 
   const handleDeleteOutput = (fileId: string) => {
@@ -179,6 +202,7 @@ export default function Home() {
     if (!confirmed) return
 
     setOutputFiles((prev) => prev.filter((f) => f.id !== fileId))
+    toast.info(`Output file "${file.filename}" deleted`)
     console.log('✅ Deleted output:', file.filename)
   }
 
