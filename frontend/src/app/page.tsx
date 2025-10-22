@@ -1,7 +1,6 @@
 'use client'
 
 import { useState ,useEffect} from 'react'
-import { mockFolders, mockInputFiles, mockOutputFiles } from '@/lib/mock-data'
 import type { Folder, InputFile, OutputFile } from '@/types'
 import FolderPanel from '@/components/FolderPanel'
 import InputFilesSection from '@/components/InputFilesSection'
@@ -21,16 +20,16 @@ export default function Home() {
   const toast = useToast()
 
   // State
-  const [folders, setFolders] = useState<Folder[]>(mockFolders)
-  const [activeFolder, setActiveFolder] = useState<Folder>(mockFolders[0])
-  const [inputFiles, setInputFiles] = useState<InputFile[]>(mockInputFiles)
-  const [outputFiles, setOutputFiles] = useState<OutputFile[]>(mockOutputFiles)
+  const [folders, setFolders] = useState<Folder[]>([])
+  const [activeFolder, setActiveFolder] = useState<Folder>()
+  const [inputFiles, setInputFiles] = useState<InputFile[]>([])
+  const [outputFiles, setOutputFiles] = useState<OutputFile[]>([])
   const [isGenerateModalOpen, setIsGenerateModalOpen] = useState(false)
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
   // Derived state
-  const activeFolderInputs = inputFiles.filter((f) => f.folderId === activeFolder.id)
-  const activeFolderOutputs = outputFiles.filter((f) => f.folderId === activeFolder.id)
+  const activeFolderInputs = inputFiles.filter((f) => f.folderId === activeFolder?.id)
+  const activeFolderOutputs = outputFiles.filter((f) => f.folderId === activeFolder?.id)
 
    // Load folders on mount
    useEffect(() => {
@@ -69,14 +68,9 @@ export default function Home() {
       if (transformedFolders.length > 0) {
         setActiveFolder(transformedFolders[0])
       }
-    } catch (error) {
+    } catch (error) {      
       console.error('Failed to load folders:', error)
-      toast.error('Failed to load folders')
-      
-      // Fallback to mock data
-      const { mockFolders } = await import('@/lib/mock-data')
-      setFolders(mockFolders)
-      setActiveFolder(mockFolders[0])
+      toast.error('Failed to connect to server')
     } finally {
       setIsLoading(false)
     }
