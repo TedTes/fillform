@@ -261,13 +261,13 @@ export interface Folder {
  */
 export async function getFolders(): Promise<Folder[]> {
   try {
-    const response = await api.get<ApiResponse<{ folders: Folder[] }>>('/folders')
+    const response = await api.get('/folders')
 
     if (!response.data.success) {
       throw new Error(response.data.error || 'Failed to get folders')
     }
 
-    return response.data.data?.folders || []
+    return response.data.folders || []
   } catch (error) {
     handleApiError(error)
   }
@@ -278,30 +278,29 @@ export async function getFolders(): Promise<Folder[]> {
  */
 export async function createFolder(name: string): Promise<Folder> {
   try {
-    const response = await api.post<ApiResponse<{ folder: Folder }>>('/folders', { name })
+    const response = await api.post('/folders', { name })
 
     if (!response.data.success) {
       throw new Error(response.data.error || 'Failed to create folder')
     }
 
-    return response.data.data!.folder
+    return response.data.folder 
   } catch (error) {
     handleApiError(error)
   }
 }
-
 /**
  * Get folder by ID.
  */
 export async function getFolder(id: string): Promise<Folder> {
   try {
-    const response = await api.get<ApiResponse<{ folder: Folder }>>(`/folders/${id}`)
+    const response = await api.get(`/folders/${id}`)
 
     if (!response.data.success) {
       throw new Error(response.data.error || 'Failed to get folder')
     }
 
-    return response.data.data!.folder
+    return response.data.folder
   } catch (error) {
     handleApiError(error)
   }
@@ -335,7 +334,7 @@ export async function uploadPdfToFolder(
     formData.append('file', file)
     formData.append('folder_id', folderId)
 
-    const response = await api.post<ApiResponse<SubmissionResponse>>(
+    const response = await api.post( 
       '/submissions/upload',
       formData,
       {
@@ -354,10 +353,10 @@ export async function uploadPdfToFolder(
     if (!response.data.success) {
       throw new Error(response.data.error || 'Upload failed')
     }
-    const { submission_id,extraction} = response.data.data!;
+
     return {
-      submission_id: submission_id!,
-      extraction: extraction!,
+      submission_id: response.data.submission_id,
+      extraction: response.data.extraction,
     }
   } catch (error) {
     handleApiError(error)
