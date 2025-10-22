@@ -426,3 +426,17 @@ export async function deleteSubmission(id: string): Promise<void> {
     handleApiError(error)
   }
 }
+
+/**
+ * Get preview URL for a submission's input file.
+ */
+export function getInputPreviewUrl(submissionId: string): string {
+  return `${API_BASE_URL}/api/submissions/${submissionId}/preview-input`
+}
+
+/**
+ * Get preview URL for a submission's output file.
+ */
+export function getOutputPreviewUrl(submissionId: string): string {
+  return `${API_BASE_URL}/api/submissions/${submissionId}/download`
+}

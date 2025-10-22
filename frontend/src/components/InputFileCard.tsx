@@ -6,13 +6,14 @@
 
 import { InputFile } from '@/types/folder'
 import LoadingSpinner from './LoadingSpinner'
-
+import { Eye } from 'lucide-react'
 interface InputFileCardProps {
   file: InputFile
-  onRemove: () => void
+  onRemove: () => void,
+  onPreview: () => void
 }
 
-export default function InputFileCard({ file, onRemove }: InputFileCardProps) {
+export default function InputFileCard({ file, onRemove,onPreview }: InputFileCardProps) {
   const isProcessing = file.status === 'uploading' || file.status === 'extracting'
 
   return (
@@ -60,7 +61,18 @@ export default function InputFileCard({ file, onRemove }: InputFileCardProps) {
             )}
           </div>
         </div>
-
+        <div className="flex items-center gap-2 flex-shrink-0">
+          {/* Preview Button */}
+          {!isProcessing && (
+            <button
+              onClick={onPreview}
+              className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all duration-200"
+              title="Preview PDF"
+            >
+              <Eye className="w-5 h-5" />
+            </button>
+          )}
+     
         {/* Remove Button */}
         {!isProcessing && (
           <button
@@ -73,6 +85,7 @@ export default function InputFileCard({ file, onRemove }: InputFileCardProps) {
             </svg>
           </button>
         )}
+        </div>
       </div>
     </div>
   )

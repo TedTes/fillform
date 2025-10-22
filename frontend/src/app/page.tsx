@@ -7,6 +7,8 @@ import InputFilesSection from '@/components/InputFilesSection'
 import OutputFilesSection from '@/components/OutputFilesSection'
 import GenerateModal from '@/components/GenerateModal'
 import useToast from '@/hooks/useToast'
+import PdfPreviewModal from '@/components/PdfPreviewModal'
+import { getInputPreviewUrl, getOutputPreviewUrl } from '@/lib/api-client'
 import { 
   getFolders, 
   createFolder as apiCreateFolder,
@@ -31,7 +33,11 @@ export default function Home() {
   // Derived state
   const activeFolderInputs = inputFiles.filter((f) => f.folder_id === activeFolder?.id)
   const activeFolderOutputs = outputFiles.filter((f) => f.folderId === activeFolder?.id)
-
+  const [previewFile, setPreviewFile] = useState<{
+    url: string
+    filename: string
+    type: 'input' | 'output'
+  } | null>(null)
    // Load folders on mount
    useEffect(() => {
     loadFolders()
@@ -315,17 +321,7 @@ export default function Home() {
     }
   }
 
-  const handlePreviewOutput = (fileId: string) => {
-    const file = outputFiles.find((f) => f.id === fileId)
-    if (!file) return
 
-    console.log('👁️ Previewing:', file.filename)
-    toast.info(`Opening preview for ${file.filename}`)
-    
-    setTimeout(() => {
-      alert(`Preview: ${file.filename}\n\n(In production, this would open the PDF in a modal viewer)`)
-    }, 100)
-  }
 
   const handleDeleteOutput = (fileId: string) => {
     const file = outputFiles.find((f) => f.id === fileId)
@@ -338,6 +334,32 @@ export default function Home() {
     toast.info(`Output file "${file.filename}" deleted`)
     console.log('✅ Deleted output:', file.filename)
   }
+  const handlePreviewInput = (fileId: string) => {
+    const file = inputFiles.find((f) => f.id === fileId)
+    if (!file) return
+
+    setPreviewFile({
+      url: getInputPreviewUrl(fileId),
+      filename: file.filename,
+      type: 'input',
+    })
+  }
+
+  const handlePreviewOutput = (fileId: string) => {
+    const file = outputFiles.find((f) => f.id === fileId)
+    if (!file) return
+
+    setPreviewFile({
+      url: getOutputPreviewUrl(fileId),
+      filename: file.filename,
+      type: 'output',
+    })
+  }
+
+  const handleClosePreview = () => {
+    setPreviewFile(null)
+  }
+  
   if (isLoading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -417,6 +439,7 @@ export default function Home() {
               files={activeFolderInputs}
               onUpload={handleUploadFiles}
               onRemove={handleRemoveFile}
+              onPreview={handlePreviewInput}
             />
 
             {/* Output Files Section */}
@@ -439,6 +462,20 @@ export default function Home() {
         files={activeFolderInputs.filter((f) => f.status === 'ready')}
         onGenerate={handleGenerate}
       />
+       {/* PDF Preview Modal */}
+       {previewFile && (
+        <PdfPreviewModal
+          isOpen={!!previewFile}
+          onClose={handleClosePreview}
+          fileUrl={previewFile.url}
+          filename={previewFile.filename}
+          onDownload={
+            previewFile.type === 'output'
+              ? () => handleDownloadOutput(previewFile.url.split('/').pop() || '')
+              : undefined
+          }
+        />
+      )}
     </div>
   )
 

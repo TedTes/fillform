@@ -12,13 +12,15 @@ import EmptyState from './EmptyState'
 interface InputFilesSectionProps {
   files: InputFile[]
   onUpload: () => void
-  onRemove: (fileId: string) => void
+  onRemove: (fileId: string) => void,
+  onPreview: (fileId: string) => void
 }
 
 export default function InputFilesSection({
   files,
   onUpload,
   onRemove,
+  onPreview
 }: InputFilesSectionProps) {
   return (
     <section className="mb-8">
@@ -62,6 +64,7 @@ export default function InputFilesSection({
               key={file.id}
               file={file}
               onRemove={() => onRemove(file.id)}
+              onPreview={() => onPreview(file.id)}
             />
           ))}
         </div>
