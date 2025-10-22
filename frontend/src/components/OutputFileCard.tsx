@@ -137,6 +137,11 @@ function StatusBadge({ status }: { status: OutputFile['status'] }) {
       icon: '✓',
       className: 'bg-green-50 text-green-700 border border-green-200',
     },
+     filled: {
+      text: 'Ready',
+      icon: '✓',
+      className: 'bg-green-50 text-green-700 border border-green-200',
+    },
     error: {
       text: 'Error',
       icon: '⚠️',

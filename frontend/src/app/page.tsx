@@ -28,7 +28,7 @@ export default function Home() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
   // Derived state
-  const activeFolderInputs = inputFiles.filter((f) => f.folderId === activeFolder?.id)
+  const activeFolderInputs = inputFiles.filter((f) => f.folder_id === activeFolder?.id)
   const activeFolderOutputs = outputFiles.filter((f) => f.folderId === activeFolder?.id)
 
    // Load folders on mount
@@ -45,7 +45,7 @@ export default function Home() {
     setFolders((prev) =>
       prev.map((folder) => ({
         ...folder,
-        fileCount: inputFiles.filter((f) => f.folderId === folder.id).length,
+        fileCount: inputFiles.filter((f) => f.folder_id === folder.id).length,
       }))
     )
   }
@@ -78,25 +78,25 @@ export default function Home() {
   const loadFolderSubmissions = async (folderId: string) => {
     try {
       const folder = await getFolder(folderId)
-      
+
       // Transform submissions to InputFiles
-      const inputs: InputFile[] = folder.submissions_detailed?.map((sub: any) => ({
+      const inputs: InputFile[] = folder.submissions?.map((sub: any) => ({
         id: sub.submission_id,
-        folderId: folderId,
+        folder_id: folderId,
         filename: sub.filename,
         size: 2000000, // Default size, backend doesn't return this
-        status: sub.status === 'filled' ? 'ready' : 'ready',
+        status: sub.status === 'filled'? 'filled': 'ready',
         uploadedAt: sub.uploaded_at,
         confidence: sub.confidence,
       })) || []
       
       setInputFiles(inputs)
-      
+
       // Check for outputs (filled PDFs)
       const outputs: OutputFile[] = inputs
         .filter(input => {
           // Check if this submission has been filled
-          return folder.submissions?.some((s: any) => 
+          return folder.submissions_detailed?.some((s: any) => 
             s.submission_id === input.id && s.status === 'filled'
           )
         })
@@ -107,7 +107,7 @@ export default function Home() {
           inputFilename: input.filename,
           filename: `${input.filename.replace('.pdf', '')}_filled.pdf`,
           size: input.size + 100000,
-          status: 'ready' as const,
+          status: 'filled' as const ,
           generatedAt: input.uploadedAt,
         }))
       
@@ -169,7 +169,7 @@ export default function Home() {
           // Create temporary input file entry
           const tempFile: InputFile = {
             id: `temp-${Date.now()}-${Math.random()}`,
-            folderId: activeFolder.folder_id,
+            folder_id: activeFolder.folder_id,
             filename: file.name,
             size: file.size,
             status: 'uploading',
@@ -282,6 +282,9 @@ export default function Home() {
       
       toast.success(`${selectedFileIds.length} output file${selectedFileIds.length > 1 ? 's' : ''} generated successfully`)
       console.log('✅ Generation complete!')
+      if (activeFolder) {
+        await loadFolderSubmissions(activeFolder.folder_id)
+      }
       
     } catch (error) {
       console.error('Generation failed:', error)

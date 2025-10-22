@@ -13,10 +13,10 @@ export interface Folder {
 }
   export interface InputFile {
     id: string
-    folderId: string
+    folder_id: string
     filename: string
     size: number
-    status: 'uploading' | 'uploaded' | 'extracting' | 'ready' | 'error'
+    status: 'uploading' | 'uploaded' | 'extracting' | 'ready' | 'error' | 'filled'
     uploadedAt: string
     confidence?: number
   }
@@ -28,7 +28,7 @@ export interface Folder {
     inputFilename: string
     filename: string
     size: number
-    status: 'generating' | 'ready' | 'error'
+    status: 'generating' | 'ready' | 'error' | 'filled'
     generatedAt: string
     fieldsWritten?: number
     fieldsSkipped?: number

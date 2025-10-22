@@ -396,7 +396,7 @@ export async function uploadMultiplePdfsToFolder(
  */
 export async function batchFillPdfs(submissionIds: string[]): Promise<FillResponse[]> {
   try {
-    const response = await api.post<ApiResponse<any>>(
+    const response = await api.post(
       '/submissions/batch-fill',
       { submission_ids: submissionIds }
     )
@@ -404,7 +404,7 @@ export async function batchFillPdfs(submissionIds: string[]): Promise<FillRespon
     if (!response.data.success) {
       throw new Error(response.data.error || 'Batch fill failed')
     }
-    const {results} = response.data.data!;
+    const {results} = response.data.results;
     return results || []
   } catch (error) {
     handleApiError(error)
