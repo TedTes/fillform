@@ -28,13 +28,14 @@ class SubmissionService:
         self.uploads_dir = os.path.join(self.storage_dir, 'uploads')
         self.outputs_dir = os.path.join(self.storage_dir, 'outputs')
         self.data_dir = os.path.join(self.storage_dir, 'data')
+        self.folders_dir = os.path.join(self.storage_dir, 'folders')
         self.template_path = 'templates/ACORD_126.pdf'
         
         # Create directories if they don't exist
         os.makedirs(self.uploads_dir, exist_ok=True)
         os.makedirs(self.outputs_dir, exist_ok=True)
         os.makedirs(self.data_dir, exist_ok=True)
-        
+        os.makedirs(self.folders_dir, exist_ok=True)
         # Initialize extractor and filler
         self.extractor = Acord126Extractor()
         self.filler = Acord126Filler()

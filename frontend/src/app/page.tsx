@@ -13,7 +13,8 @@ import {
   uploadPdfToFolder,
   batchFillPdfs,
   downloadPdf as apiDownloadPdf,
-  getFolder
+  getFolder,
+  deleteSubmission
 } from '@/lib/api-client'
 export default function Home() {
   // Toast
@@ -213,19 +214,26 @@ export default function Home() {
     input.click()
   }
 
-  const handleRemoveFile = (fileId: string) => {
+  const handleRemoveFile = async (fileId: string) => {
     const file = inputFiles.find((f) => f.id === fileId)
     if (!file) return
 
     const confirmed = confirm(`Remove ${file.filename}?`)
     if (!confirmed) return
+    try {
+      // Delete from backend first
+      await deleteSubmission(fileId)
+      setInputFiles((prev) => prev.filter((f) => f.id !== fileId))
+      setOutputFiles((prev) => prev.filter((f) => f.inputFileId !== fileId))
+      
+      toast.info(`File "${file.filename}" removed`)
+      console.log('✅ Removed file:', file.filename)
+      updateFolderCounts()
+    } catch(error) {
+      console.error('Failed to delete file:', error)
+      toast.error('Failed to delete file')
+    }
 
-    setInputFiles((prev) => prev.filter((f) => f.id !== fileId))
-    setOutputFiles((prev) => prev.filter((f) => f.inputFileId !== fileId))
-    
-    toast.info(`File "${file.filename}" removed`)
-    console.log('✅ Removed file:', file.filename)
-    updateFolderCounts()
   }
 
   // Generate Actions

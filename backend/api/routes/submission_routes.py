@@ -5,6 +5,8 @@ Endpoints for uploading, extracting, filling, and downloading ACORD forms.
 """
 
 import os
+import json
+import shutil
 from flask import Blueprint, request, jsonify, send_file
 from werkzeug.utils import secure_filename
 from services.submission_service import SubmissionService
@@ -344,6 +346,74 @@ def batch_download_pdfs():
             as_attachment=True,
             download_name='filled_pdfs.zip'
         )
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@submission_bp.route('/submissions/<submission_id>', methods=['DELETE'])
+def delete_submission(submission_id):
+    """
+    Delete a submission and its files.
+    
+    Args:
+        submission_id: Submission identifier
+    
+    Returns:
+        JSON with success status
+    """
+    try:
+        # Get submission metadata
+        metadata_path = os.path.join('storage/data', f"{submission_id}_meta.json")
+        data_path = os.path.join('storage/data', f"{submission_id}.json")
+        
+        # if not os.path.exists(metadata_path):
+        #     return jsonify({'error': 'Submission not found'}), 404
+        
+        # Load metadata to find file paths
+        with open(metadata_path, 'r') as f:
+            metadata = json.load(f)
+        
+        # Delete input file
+        if 'upload_path' in metadata and os.path.exists(metadata['upload_path']):
+            os.remove(metadata['upload_path'])
+            print(f"Deleted input: {metadata['upload_path']}")
+        
+        # Delete output file
+        if 'output_path' in metadata and os.path.exists(metadata['output_path']):
+            os.remove(metadata['output_path'])
+            print(f"Deleted output: {metadata['output_path']}")
+        
+        # Delete metadata files
+        if os.path.exists(metadata_path):
+            os.remove(metadata_path)
+        if os.path.exists(data_path):
+            os.remove(data_path)
+        
+        # Update folder metadata
+        folder_id = metadata.get('folder_id')
+        if folder_id:
+            from services.folder_service import FolderService
+            folder_service = FolderService()
+            folder = folder_service.get_folder(folder_id)
+            
+            if folder:
+                # Remove submission from folder's submissions list
+                folder['submissions'] = [
+                    s for s in folder.get('submissions', [])
+                    if s['submission_id'] != submission_id
+                ]
+                folder['file_count'] = len(folder['submissions'])
+                
+                # Save updated metadata
+                folder_path = folder_service.get_folder_path(folder_id)
+                metadata_file = os.path.join(folder_path, 'metadata.json')
+                with open(metadata_file, 'w') as f:
+                    json.dump(folder, f, indent=2)
+        
+        return jsonify({
+            'success': True,
+            'message': 'Submission deleted successfully'
+        }), 200
         
     except Exception as e:
         return jsonify({'error': str(e)}), 500

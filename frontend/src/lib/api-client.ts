@@ -410,3 +410,19 @@ export async function batchFillPdfs(submissionIds: string[]): Promise<FillRespon
     handleApiError(error)
   }
 }
+
+/**
+ * Delete a submission.
+ */
+export async function deleteSubmission(id: string): Promise<void> {
+  try {
+    await api.delete(`/submissions/${id}`)
+  } catch (error) {
+    // Ignore 404 errors (endpoint might not exist yet)
+    if (axios.isAxiosError(error) && error.response?.status === 404) {
+      console.warn('Delete endpoint not implemented on backend')
+      return
+    }
+    handleApiError(error)
+  }
+}
