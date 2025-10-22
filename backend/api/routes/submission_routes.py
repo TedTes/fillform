@@ -279,6 +279,9 @@ def download_pdf(submission_id):
         file_path = submission_service.get_output_path(submission_id)
         
         if not os.path.exists(file_path):
+            # Debug: print the path being checked
+            print(f"File not found: {file_path}")
+            print(f"Current directory: {os.getcwd()}")
             return jsonify({'error': 'File not found'}), 404
         
         return send_file(
@@ -289,6 +292,7 @@ def download_pdf(submission_id):
         )
         
     except Exception as e:
+        print(f"Download error: {str(e)}")  # Add debug logging
         return jsonify({'error': str(e)}), 500
 
 
@@ -414,6 +418,46 @@ def delete_submission(submission_id):
             'success': True,
             'message': 'Submission deleted successfully'
         }), 200
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+
+
+@submission_bp.route('/submissions/<submission_id>/preview-input', methods=['GET'])
+def preview_input_pdf(submission_id):
+    """
+    Preview input PDF (for iframe).
+    
+    Args:
+        submission_id: Submission identifier
+    
+    Returns:
+        PDF file for preview
+    """
+    try:
+        # Load metadata
+        metadata_path = os.path.join('storage/data', f"{submission_id}_meta.json")
+        
+        if not os.path.exists(metadata_path):
+            return jsonify({'error': 'Submission not found'}), 404
+        
+        import json
+        with open(metadata_path, 'r') as f:
+            metadata = json.load(f)
+        
+        file_path = metadata.get('upload_path')
+        
+        if not file_path or not os.path.exists(file_path):
+            return jsonify({'error': 'File not found'}), 404
+        
+        # Return PDF inline (for iframe)
+        return send_file(
+            file_path,
+            mimetype='application/pdf',
+            as_attachment=False  # Display inline, not download
+        )
         
     except Exception as e:
         return jsonify({'error': str(e)}), 500

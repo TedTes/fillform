@@ -236,8 +236,11 @@ class SubmissionService:
                 metadata = json.load(f)
             
             if 'output_path' in metadata:
-                return metadata['output_path']
-        
+                output_path =  metadata['output_path']
+                if not os.path.isabs(output_path):
+                    backend_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+                    output_path = os.path.join(backend_root, output_path)
+                return output_path
         # Fallback to legacy path
         output_path = os.path.join(self.outputs_dir, f"{submission_id}_filled.pdf")
         return output_path
