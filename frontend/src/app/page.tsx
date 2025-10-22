@@ -2,7 +2,7 @@
 
 import { useState ,useEffect} from 'react'
 import { mockFolders, mockInputFiles, mockOutputFiles } from '@/lib/mock-data'
-import type { Folder, InputFile, OutputFile } from '@/types/folder'
+import type { Folder, InputFile, OutputFile } from '@/types'
 import FolderPanel from '@/components/FolderPanel'
 import InputFilesSection from '@/components/InputFilesSection'
 import OutputFilesSection from '@/components/OutputFilesSection'
@@ -13,7 +13,8 @@ import {
   createFolder as apiCreateFolder,
   uploadPdfToFolder,
   batchFillPdfs,
-  downloadPdf as apiDownloadPdf
+  downloadPdf as apiDownloadPdf,
+  getFolder
 } from '@/lib/api-client'
 export default function Home() {
   // Toast
@@ -35,6 +36,11 @@ export default function Home() {
    useEffect(() => {
     loadFolders()
   }, [])
+  useEffect(() => {
+    if (activeFolder) {
+      loadFolderSubmissions(activeFolder.folder_id)
+    }
+  }, [activeFolder])
   // Update folder file counts
   const updateFolderCounts = () => {
     setFolders((prev) =>
@@ -52,6 +58,7 @@ export default function Home() {
       // Transform backend format to frontend format
       const transformedFolders = fetchedFolders.map(f => ({
         id: f.folder_id,
+        folder_id:f.folder_id,
         name: f.name,
         created_at: f.created_at,
         file_count: f.file_count
@@ -74,6 +81,49 @@ export default function Home() {
       setIsLoading(false)
     }
   }
+  const loadFolderSubmissions = async (folderId: string) => {
+    try {
+      const folder = await getFolder(folderId)
+      
+      // Transform submissions to InputFiles
+      const inputs: InputFile[] = folder.submissions_detailed?.map((sub: any) => ({
+        id: sub.submission_id,
+        folderId: folderId,
+        filename: sub.filename,
+        size: 2000000, // Default size, backend doesn't return this
+        status: sub.status === 'filled' ? 'ready' : 'ready',
+        uploadedAt: sub.uploaded_at,
+        confidence: sub.confidence,
+      })) || []
+      
+      setInputFiles(inputs)
+      
+      // Check for outputs (filled PDFs)
+      const outputs: OutputFile[] = inputs
+        .filter(input => {
+          // Check if this submission has been filled
+          return folder.submissions?.some((s: any) => 
+            s.submission_id === input.id && s.status === 'filled'
+          )
+        })
+        .map(input => ({
+          id: input.id,
+          folderId: folderId,
+          inputFileId: input.id,
+          inputFilename: input.filename,
+          filename: `${input.filename.replace('.pdf', '')}_filled.pdf`,
+          size: input.size + 100000,
+          status: 'ready' as const,
+          generatedAt: input.uploadedAt,
+        }))
+      
+      setOutputFiles(outputs)
+      
+    } catch (error) {
+      console.error('Failed to load folder submissions:', error)
+      // Don't show error toast - not critical
+    }
+  }
   // Folder Actions
   const handleNewFolder = async () => {
     const name = prompt('Enter folder name:')
@@ -83,7 +133,7 @@ export default function Home() {
       const newFolder = await apiCreateFolder(name.trim())
       
       const transformedFolder = {
-        id: newFolder.folder_id,
+        folder_id: newFolder.folder_id,
         name: newFolder.name,
         created_at: newFolder.created_at,
         file_count: 0
@@ -125,7 +175,7 @@ export default function Home() {
           // Create temporary input file entry
           const tempFile: InputFile = {
             id: `temp-${Date.now()}-${Math.random()}`,
-            folderId: activeFolder.id,
+            folderId: activeFolder.folder_id,
             filename: file.name,
             size: file.size,
             status: 'uploading',
@@ -135,7 +185,7 @@ export default function Home() {
           setInputFiles((prev) => [...prev, tempFile])
           
           // Upload to backend
-          const result = await uploadPdfToFolder(activeFolder.id, file)
+          const result = await uploadPdfToFolder(activeFolder.folder_id, file)
           
           // Update with real data
           setInputFiles((prev) =>

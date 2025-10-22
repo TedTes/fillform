@@ -7,8 +7,9 @@ import type {
   ApiResponse, 
   SubmissionResponse, 
   FillResponse, 
-  SubmissionDetail 
-} from '@/types/api'
+  SubmissionDetail,
+  Folder
+} from '@/types'
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'
 
@@ -247,15 +248,6 @@ export async function checkBackendAvailability(): Promise<{
 // ========================================
 // FOLDER OPERATIONS
 // ========================================
-
-export interface Folder {
-  folder_id: string
-  name: string
-  created_at: string
-  file_count: number
-  submissions: any[]
-}
-
 /**
  * Get all folders.
  */

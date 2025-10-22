@@ -3,15 +3,14 @@
  */
 
 export interface Folder {
-  id: string  // Keep for frontend compatibility
-  folder_id?: string;  // Backend uses this
+  id?: string;  // Keep for frontend compatibility
+  folder_id: string;  // Backend uses this
   name: string;
-  created_at: string
-  createdAt?: string // Frontend uses this
-  file_count: number
-  fileCount?: number// Frontend uses this
+  created_at: string;
+  file_count: number;
+  submissions?: any[]
+  submissions_detailed?: any[]
 }
-  
   export interface InputFile {
     id: string
     folderId: string
