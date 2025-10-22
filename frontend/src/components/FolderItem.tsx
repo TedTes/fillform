@@ -45,7 +45,7 @@ export default function FolderItem({ folder, isActive, onClick }: FolderItemProp
           <p className={`text-xs mt-0.5 transition-colors ${
             isActive ? 'text-blue-600' : 'text-gray-500 group-hover:text-gray-600'
           }`}>
-            {folder.fileCount} {folder.fileCount === 1 ? 'file' : 'files'}
+            {folder.file_count} {folder.file_count === 1 ? 'file' : 'files'}
           </p>
         </div>
 

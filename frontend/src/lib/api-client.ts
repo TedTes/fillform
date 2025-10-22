@@ -8,7 +8,8 @@ import type {
   SubmissionResponse, 
   FillResponse, 
   SubmissionDetail,
-  Folder
+  Folder,
+  FillReport
 } from '@/types'
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'
@@ -168,7 +169,7 @@ export async function updateSubmission(
 /**
  * Fill PDF with data.
  */
-export async function fillPdf(id: string): Promise<FillResponse> {
+export async function fillPdf(id: string): Promise<FillReport> {
   try {
     const response = await api.post<ApiResponse<FillResponse>>(
       `/submissions/${id}/fill`
@@ -179,8 +180,8 @@ export async function fillPdf(id: string): Promise<FillResponse> {
     }
     const {fill_report,download_url} = response.data.data!;
     return {
-      fill_report: fill_report!,
-      download_url: download_url!,
+      ...fill_report,
+      downloadUrl: download_url!,
     }
   } catch (error) {
     handleApiError(error)
@@ -190,8 +191,8 @@ export async function fillPdf(id: string): Promise<FillResponse> {
 /**
  * Fill multiple PDFs.
  */
-export async function fillMultiplePdfs(ids: string[]): Promise<FillResponse[]> {
-  const results: FillResponse[] = []
+export async function fillMultiplePdfs(ids: string[]): Promise<FillReport[]> {
+  const results: FillReport[] = []
 
   for (const id of ids) {
     const result = await fillPdf(id)
