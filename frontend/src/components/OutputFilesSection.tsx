@@ -50,10 +50,10 @@ export default function OutputFilesSection({
         {hasInputFiles && files.length > 0 && (
           <button
             onClick={onGenerate}
-            className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors flex items-center gap-2"
+            className="inline-flex items-center gap-1.5 px-2.5 py-1.5 bg-white hover:bg-gray-50 border border-blue-500 text-gray-700 hover:text-gray-900 text-xs font-medium rounded-md transition-colors"
           >
-            <Zap className="w-4 h-4" />
-            Generate More
+            <Zap className="w-3.5 h-3.5 text-blue-500" />
+            Generate New
           </button>
         )}
       </div>
