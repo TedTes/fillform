@@ -37,31 +37,36 @@ export default function OutputFilesSection({
 
   return (
     <section>
-      {/* Header */}
-      <div className="flex items-center justify-between mb-4">
-        <h3 className="text-lg font-semibold text-gray-900">
-          Output Files ({files.length})
+   {/* Header */}
+   <div className="flex items-center justify-between mb-5">
+   <div className="mb-4">
+        <h3 className="text-lg font-bold text-gray-900">
+          Output Files
         </h3>
+        <p className="text-sm text-gray-500 mt-1">
+          {files.length} file{files.length !== 1 ? 's' : ''} generated
+        </p>
+      </div>
         {hasInputFiles && files.length === 0 && (
-          <button
-            onClick={onGenerate}
-            className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white text-sm font-medium rounded-lg transition-colors flex items-center gap-2"
-          >
-            <svg
-              className="w-4 h-4"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M13 10V3L4 14h7v7l9-11h-7z"
-              />
-            </svg>
-            Generate Output
-          </button>
+        <button
+        onClick={onGenerate}
+        className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors flex items-center gap-2"
+      >
+        <svg
+          className="w-4 h-4"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={2}
+            d="M13 10V3L4 14h7v7l9-11h-7z"
+          />
+        </svg>
+        Generate Output
+      </button>
         )}
       </div>
 

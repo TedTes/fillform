@@ -20,16 +20,18 @@ export default function InputFilesSection({
   files,
   onUpload,
   onRemove,
-  onPreview
+  onPreview,
 }: InputFilesSectionProps) {
   return (
     <section className="mb-8">
-      {/* Header */}
-      <div className="flex items-center justify-between mb-4">
-        <h3 className="text-lg font-semibold text-gray-900">
-          Input Files ({files.length})
+      {/* Header - NO UPLOAD BUTTON */}
+      <div className="mb-4">
+        <h3 className="text-lg font-bold text-gray-900">
+          Input Files
         </h3>
-        <FileUploadButton onClick={onUpload} />
+        <p className="text-sm text-gray-500 mt-1">
+          {files.length} file{files.length !== 1 ? 's' : ''} uploaded
+        </p>
       </div>
 
       {/* File List or Empty State */}
@@ -51,7 +53,7 @@ export default function InputFilesSection({
             </svg>
           }
           title="No files uploaded yet"
-          description="Upload ACORD 126 PDF files to get started. You can drag and drop or click the upload button."
+          description="Upload ACORD 126 PDF files to get started. Click the Upload Files button above."
           action={{
             label: 'Upload Files',
             onClick: onUpload,
