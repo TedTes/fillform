@@ -390,7 +390,7 @@ export default function Home() {
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
       <header className="bg-white border-b border-gray-200 relative">
-        <div className="px-6 py-4 lg:px-6">
+        <div className="px-6 py-5 lg:px-8">
           <div className="flex items-center gap-4">
             {/* Mobile Menu Button */}
             <button
@@ -402,7 +402,7 @@ export default function Home() {
               </svg>
             </button>
 
-            {/* Logo & Title */}
+            {/* Logo & Title - with spacing */}
             <div>
               <h1 className="text-xl lg:text-2xl font-bold text-gray-900">AutoFil</h1>
               <p className="text-xs lg:text-sm text-gray-600">ACORD Form Filler</p>
@@ -412,7 +412,7 @@ export default function Home() {
       </header>
 
       {/* Main Layout: Two Panels */}
-      <div className="flex h-[calc(100vh-65px)] lg:h-[calc(100vh-80px)]">
+      <div className="flex h-[calc(100vh-73px)] lg:h-[calc(100vh-89px)]">
         {/* Left Panel: Folders */}
         <FolderPanel
           folders={folders}
@@ -424,14 +424,43 @@ export default function Home() {
         />
 
         {/* Right Panel: Content */}
-        <main className="flex-1 overflow-y-auto w-full">
-          <div className="p-4 lg:p-6 max-w-6xl mx-auto">
+        <main className="flex-1 overflow-y-auto w-full bg-gray-50">
+          <div className="p-6 lg:p-8 max-w-6xl mx-auto">
             {/* Folder Header */}
-            <div className="mb-4 lg:mb-6">
-              <h2 className="text-lg lg:text-xl font-bold text-gray-900">{activeFolder.name}</h2>
-              <p className="text-xs lg:text-sm text-gray-500">
-                {activeFolderInputs.length} input • {activeFolderOutputs.length} output
-              </p>
+            <div className="mb-8 pb-5 border-b border-gray-200">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h2 className="text-2xl font-bold text-gray-900">{activeFolder.name}</h2>
+                  <p className="text-sm text-gray-500 mt-1">
+                    {activeFolderInputs.length} input • {activeFolderOutputs.length} output
+                  </p>
+                </div>
+                
+                {/* Quick Actions - ONLY ONE UPLOAD BUTTON */}
+                <div className="flex items-center gap-3">
+                  <button
+                    onClick={handleUploadFiles}
+                    className="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white text-sm font-medium rounded-lg transition-colors flex items-center gap-2"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                    </svg>
+                    Upload Files
+                  </button>
+                  
+                  {activeFolderInputs.length > 0 && (
+                    <button
+                      onClick={handleGenerateOutput}
+                      className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors flex items-center gap-2"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                      </svg>
+                      Generate Output
+                    </button>
+                  )}
+                </div>
+              </div>
             </div>
 
             {/* Input Files Section */}
@@ -455,15 +484,15 @@ export default function Home() {
         </main>
       </div>
 
-      {/* Generate Modal */}
+      {/* Modals */}
       <GenerateModal
         isOpen={isGenerateModalOpen}
         onClose={() => setIsGenerateModalOpen(false)}
         files={activeFolderInputs.filter((f) => f.status === 'ready')}
         onGenerate={handleGenerate}
       />
-       {/* PDF Preview Modal */}
-       {previewFile && (
+
+      {previewFile && (
         <PdfPreviewModal
           isOpen={!!previewFile}
           onClose={handleClosePreview}

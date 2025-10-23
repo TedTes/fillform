@@ -38,13 +38,13 @@ export default function FolderList({
           </svg>
         </div>
         <p className="text-sm font-medium text-gray-700 mb-1">No folders yet</p>
-        <p className="text-xs text-gray-500">Click "+ New" to create one</p>
+        <p className="text-xs text-gray-500">Click "New Folder" to create one</p>
       </div>
     )
   }
 
   return (
-    <div className="space-y-2">
+    <div className="space-y-1 ml-2">
       {folders.map((folder) => (
         <FolderItem
           key={folder.id}
