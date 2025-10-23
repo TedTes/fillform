@@ -21,7 +21,7 @@ export default function RootLayout({
     <html lang="en">
       <body className={inter.className}>
         <ToastProvider>
-          <div className="min-h-screen bg-gray-50">
+          <div className="min-h-screen">
             <BackendStatusBanner />
             {children}
           </div>

@@ -362,7 +362,7 @@ export default function Home() {
   
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="min-h-screen  flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full mx-auto mb-4"></div>
           <p className="text-gray-600">Loading folders...</p>
@@ -372,7 +372,7 @@ export default function Home() {
   }
   if (!activeFolder) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
           <p className="text-gray-600 mb-4">No folders available</p>
           <button
@@ -387,9 +387,9 @@ export default function Home() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen ">
       {/* Header */}
-      <header className="bg-white border-b border-gray-200 relative">
+      <header className="bg-white  border-gray-200 relative">
         <div className="px-6 py-5 lg:px-8">
           <div className="flex items-center gap-4">
             {/* Mobile Menu Button */}
@@ -424,7 +424,7 @@ export default function Home() {
         />
 
         {/* Right Panel: Content */}
-        <main className="flex-1 overflow-y-auto w-full bg-gray-50">
+        <main className="flex-1 overflow-y-auto w-full ">
           <div className="p-6 lg:p-8 max-w-6xl mx-auto">
             {/* Folder Header */}
             <div className="mb-8 pb-5 border-b border-gray-200">

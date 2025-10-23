@@ -59,10 +59,10 @@ export default function FolderPanel({
           </button>
 
           {/* New Folder Button - Right Aligned */}
-          <div className="flex justify-end">
+          <div className="flex justify-start">
             <button
               onClick={onNewFolder}
-              className="inline-flex items-center gap-1.5 px-2.5 py-1.5 bg-white hover:bg-gray-50 border border-blue-500 text-gray-700 hover:text-gray-900 text-xs font-medium rounded-md transition-all duration-200"
+              className="inline-flex items-center gap-1.5 px-2.5 py-1.5 bg-white hover:bg-gray-50 border border-blue-700 text-gray-700 hover:text-gray-900 text-xs font-medium rounded-md transition-all duration-200"
             >
               <FolderPlus className="w-3.5 h-3.5" />
               <span>New Folder</span>
