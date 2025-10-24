@@ -434,7 +434,7 @@ def preview_input_pdf(submission_id):
         submission_id: Submission identifier
     
     Returns:
-        PDF file for preview
+        PDF file for preview (inline, not download)
     """
     try:
         # Load metadata
@@ -452,12 +452,54 @@ def preview_input_pdf(submission_id):
         if not file_path or not os.path.exists(file_path):
             return jsonify({'error': 'File not found'}), 404
         
-        # Return PDF inline (for iframe)
-        return send_file(
-            file_path,
-            mimetype='application/pdf',
-            as_attachment=False  # Display inline, not download
-        )
+        # Get absolute path
+        if not os.path.isabs(file_path):
+            backend_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+            file_path = os.path.join(backend_root, file_path)
+        
+        # Return PDF inline for preview (NOT as attachment)
+        from flask import Response
+        with open(file_path, 'rb') as f:
+            pdf_data = f.read()
+        
+        response = Response(pdf_data, mimetype='application/pdf')
+        response.headers['Content-Disposition'] = 'inline'
+        response.headers['Content-Type'] = 'application/pdf'
+        return response
         
     except Exception as e:
+        print(f"Preview error: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+
+
+
+@submission_bp.route('/submissions/<submission_id>/preview-output', methods=['GET'])
+def preview_output_pdf(submission_id):
+    """
+    Preview output PDF (for iframe).
+    
+    Args:
+        submission_id: Submission identifier
+    
+    Returns:
+        PDF file for preview (inline, not download)
+    """
+    try:
+        file_path = submission_service.get_output_path(submission_id)
+        
+        if not os.path.exists(file_path):
+            return jsonify({'error': 'File not found'}), 404
+        
+        # Return PDF inline for preview
+        from flask import Response
+        with open(file_path, 'rb') as f:
+            pdf_data = f.read()
+        
+        response = Response(pdf_data, mimetype='application/pdf')
+        response.headers['Content-Disposition'] = 'inline'
+        response.headers['Content-Type'] = 'application/pdf'
+        return response
+        
+    except Exception as e:
+        print(f"Preview error: {str(e)}")
         return jsonify({'error': str(e)}), 500

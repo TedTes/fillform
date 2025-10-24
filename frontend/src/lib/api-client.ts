@@ -438,5 +438,5 @@ export function getInputPreviewUrl(submissionId: string): string {
  * Get preview URL for a submission's output file.
  */
 export function getOutputPreviewUrl(submissionId: string): string {
-  return `${API_BASE_URL}/api/submissions/${submissionId}/download`
+  return `${API_BASE_URL}/api/submissions/${submissionId}/preview-output`
 }
