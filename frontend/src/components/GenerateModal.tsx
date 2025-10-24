@@ -73,13 +73,14 @@ export default function GenerateModal({
     <>
       {/* Backdrop */}
       <div
-        className="fixed inset-0 bg-black bg-opacity-50 z-50"
-        onClick={onClose}
-      />
+  className="fixed inset-0 bg-white/30 backdrop-blur-sm backdrop-saturate-150 transition-opacity duration-200 z-50"
+  onClick={onClose}
+/>
 
       {/* Modal */}
       <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl max-h-[80vh] flex flex-col">
+      <div className="bg-white/95 border border-gray-200 rounded-2xl shadow-2xl w-full max-w-2xl max-h-[80vh] flex flex-col backdrop-blur-sm mx-4 sm:mx-0">
+
           {/* Header */}
           <div className="px-4 lg:px-6 py-3 lg:py-4 border-b border-gray-200 flex items-center justify-between">
             <div>
