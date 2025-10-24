@@ -1,7 +1,3 @@
-/**
- * Single output file card component - with loading state.
- */
-
 'use client'
 
 import { OutputFile } from '@/types/folder'
@@ -15,12 +11,7 @@ interface OutputFileCardProps {
   onDelete: () => void
 }
 
-export default function OutputFileCard({
-  file,
-  onDownload,
-  onPreview,
-  onDelete,
-}: OutputFileCardProps) {
+export default function OutputFileCard({ file, onDownload, onPreview, onDelete }: OutputFileCardProps) {
   const isGenerating = file.status === 'generating'
 
   return (
@@ -28,134 +19,91 @@ export default function OutputFileCard({
       <div className="flex items-center gap-4">
         {/* File Icon or Loading */}
         <div className="flex-shrink-0">
-          <div className={`w-14 h-14 rounded-xl flex items-center justify-center transition-all shadow-sm ${
-            isGenerating 
-              ? 'bg-blue-50 border-2 border-blue-200' 
-              : 'bg-blue-50 border-2 border-blue-200 group-hover:bg-blue-100'
-          }`}>
+          <div
+            className={`w-14 h-14 rounded-xl flex items-center justify-center transition-all shadow-sm ${
+              isGenerating
+                ? 'bg-blue-50 border-2 border-blue-200'
+                : 'bg-blue-50 border-2 border-blue-200 group-hover:bg-blue-100'
+            }`}
+          >
             {isGenerating ? (
               <LoadingSpinner size="sm" />
             ) : (
-              <svg className="w-7 h-7 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
-                <path fillRule="evenodd" d="M6 2a2 2 0 00-2 2v12a2 2 0 002 2h8a2 2 0 002-2V7.414A2 2 0 0015.414 6L12 2.586A2 2 0 0010.586 2H6zm5 6a1 1 0 10-2 0v3.586l-1.293-1.293a1 1 0 10-1.414 1.414l3 3a1 1 0 001.414 0l3-3a1 1 0 00-1.414-1.414L11 11.586V8z" clipRule="evenodd" />
+              <svg
+                className="w-7 h-7 text-blue-600"
+                fill="currentColor"
+                viewBox="0 0 20 20"
+              >
+                <path
+                  fillRule="evenodd"
+                  d="M6 2a2 2 0 00-2 2v12a2 2 0 002 2h8a2 2 0 002-2V7.414A2 2 0 0015.414 6L12 2.586A2 2 0 0010.586 2H6zm5 6a1 1 0 10-2 0v3.586l-1.293-1.293a1 1 0 10-1.414 1.414l3 3a1 1 0 001.414 0l3-3a1 1 0 00-1.414-1.414L11 11.586V8z"
+                  clipRule="evenodd"
+                />
               </svg>
             )}
           </div>
         </div>
 
-   {/* File Info */}
-   <div className="flex-1 min-w-0">
+        {/* File Info */}
+        <div className="flex-1 min-w-0">
           <p className="text-sm font-semibold text-gray-900 truncate group-hover:text-gray-900 transition-colors">
             {file.filename}
           </p>
 
-          <div className="flex items-center gap-2.5 mt-2 flex-wrap">
-            {/* File Size */}
-            <span className="inline-flex items-center gap-1.5 text-xs text-gray-600 bg-gray-50 px-2.5 py-1 rounded-md">
-              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
-              </svg>
-              {(file.size / (1024 * 1024)).toFixed(1)} MB
-            </span>
-
-            {/* Source Link */}
-            <span className="inline-flex items-center gap-1.5 text-xs text-gray-500 bg-gray-50 px-2.5 py-1 rounded-md">
-              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-              </svg>
-              {file.inputFilename}
-            </span>
-
-            {/* Fields Info */}
-            {file.fieldsWritten && !isGenerating && (
-              <span className="inline-flex items-center gap-1.5 text-xs text-blue-700 font-semibold bg-blue-50 px-2.5 py-1 rounded-md border border-blue-200">
-                <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                </svg>
-                {file.fieldsWritten} fields
-              </span>
-            )}
-
-            {/* Status Badge */}
-            <StatusBadge status={file.status} />
-          </div>
+          {!isGenerating ? (
+            <div className="flex items-center gap-2 mt-2 flex-wrap">
+              <ActionChip
+                icon={<Eye className="w-3.5 h-3.5" />}
+                text="Preview"
+                color="blue"
+                onClick={onPreview}
+              />
+              <ActionChip
+                icon={<Download className="w-3.5 h-3.5" />}
+                text="Download"
+                color="green"
+                onClick={onDownload}
+              />
+              <ActionChip
+                icon={<Trash2 className="w-3.5 h-3.5" />}
+                text="Delete"
+                color="red"
+                onClick={onDelete}
+              />
+            </div>
+          ) : (
+            <p className="text-xs text-blue-600 font-medium mt-2">Generating...</p>
+          )}
         </div>
-{/* Action Buttons */}
-{!isGenerating && (
-          <div className="flex items-center gap-1 flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-            <button
-              onClick={onDownload}
-              className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all duration-200"
-              title="Download"
-            >
-              <Download className="w-4 h-4" strokeWidth={2} />
-            </button>
-            <button
-              onClick={onPreview}
-              className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all duration-200"
-              title="Preview"
-            >
-              <Eye className="w-4 h-4" strokeWidth={2} />
-            </button>
-            <button
-              onClick={onDelete}
-              className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all duration-200"
-              title="Delete"
-            >
-              <Trash2 className="w-4 h-4" strokeWidth={2} />
-            </button>
-          </div>
-        )}
-
-        {/* Generating Text */}
-        {isGenerating && (
-          <span className="text-xs text-blue-600 font-medium flex-shrink-0">
-            Generating...
-          </span>
-        )}
       </div>
     </div>
   )
 }
 
-/**
- * Status badge component.
- */
-function StatusBadge({ status }: { status: OutputFile['status'] }) {
-  const config = {
-    generating: {
-      text: 'Generating',
-      icon: (
-        <svg className="w-3 h-3 animate-spin" fill="none" viewBox="0 0 24 24">
-          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-        </svg>
-      ),
-      className: 'bg-yellow-50 text-yellow-700 border border-yellow-200',
-    },
-    ready: {
-      text: 'Ready',
-      icon: '✓',
-      className: 'bg-green-50 text-green-700 border border-green-200',
-    },
-     filled: {
-      text: 'Ready',
-      icon: '✓',
-      className: 'bg-green-50 text-green-700 border border-green-200',
-    },
-    error: {
-      text: 'Error',
-      icon: '⚠️',
-      className: 'bg-red-50 text-red-700 border border-red-200',
-    },
-  }
-
-  const { text, icon, className } = config[status]
+function ActionChip({
+  icon,
+  text,
+  color,
+  onClick,
+}: {
+  icon: React.ReactNode
+  text: string
+  color: 'blue' | 'red' | 'green'
+  onClick: () => void
+}) {
+  const base = {
+    blue: 'text-blue-600 bg-blue-50 hover:bg-blue-100 border-blue-200',
+    red: 'text-red-600 bg-red-50 hover:bg-red-100 border-red-200',
+    green: 'text-green-600 bg-green-50 hover:bg-green-100 border-green-200',
+  }[color]
 
   return (
-    <span className={`inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium rounded border ${className}`}>
-      {typeof icon === 'string' ? <span className="text-xs">{icon}</span> : icon}
+    <button
+      onClick={onClick}
+      className={`inline-flex items-center  gap-1.5 text-[9.5px] font-small px-0.9 py-0.7  transition-colors ${base}`}
+    >
+      {icon}
       {text}
-    </span>
+    </button>
   )
 }

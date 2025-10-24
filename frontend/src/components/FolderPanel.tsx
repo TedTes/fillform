@@ -41,7 +41,7 @@ export default function FolderPanel({
       >
         <div className="h-10 bg-white"></div>
 
-        <div className="px-4 py-4 bg-white">
+        <div className="px-4  bg-white">
           <button
             onClick={onMobileToggle}
             className="lg:hidden absolute top-4 right-4 p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-md transition-colors"

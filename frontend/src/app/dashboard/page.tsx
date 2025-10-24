@@ -1,6 +1,8 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { Upload as UpIcon, Download as DownIcon } from 'lucide-react'
+
 import { useRouter } from 'next/navigation'
 import type { Folder, InputFile, OutputFile } from '@/types'
 import FolderPanel from '@/components/FolderPanel'
@@ -471,32 +473,59 @@ export default function Home() {
         <main className="flex-1 overflow-y-auto w-full">
           <div className="p-6 lg:p-8 max-w-6xl mx-auto">
             {/* Folder Header */}
-            <div className="mb-8 pb-5 border-b border-gray-200">
-              <div>
-                <h2 className="text-2xl font-bold text-gray-900">{activeFolder.name}</h2>
+   
+              <div className = "className=mb-8 pb-5 ">
+                <h3 className="text-1xl  text-gray-800">{activeFolder.name}</h3>
                 <p className="text-sm text-gray-500 mt-1">
                   {activeFolderInputs.length} input • {activeFolderOutputs.length} output
                 </p>
               </div>
-            </div>
+      
 
             {/* Input Files */}
             <InputFilesSection
-              files={activeFolderInputs}
-              onUpload={handleUploadFiles}
-              onRemove={handleRemoveFile}
-              onPreview={handlePreviewInput}
-            />
+  files={activeFolderInputs}
+  onUpload={handleUploadFiles}
+  onRemove={handleRemoveFile}
+  onPreview={handlePreviewInput}
+/>
+{/* Toolbar under uploaded files */}
+<div className="mt-4 mb-6 flex flex-col sm:flex-row sm:items-center gap-2">
+  {/* Upload Files (⬆️ up arrow) */}
+  <button
+    onClick={handleUploadFiles}
+    className="inline-flex h-7 items-center gap-1 rounded-md border-[0.6px] border-blue-400 px-2 py-1 text-xs font-semibold text-blue-700 hover:bg-blue-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1 transition-colors w-full sm:w-auto"
+  >
+    <UpIcon className="w-3.5 h-3.5" aria-hidden="true" />
+    <span>Upload Files</span>
+  </button>
+
+  {/* Generate New (⬇️ down arrow) */}
+  <button
+    onClick={handleGenerateOutput}
+    disabled={activeFolderInputs.length === 0}
+    className={`inline-flex h-7  items-center gap-1 rounded-md border-[0.6px] border-blue-400 px-2 py-1 text-xs font-semibold transition-colors w-full sm:w-auto focus:outline-none focus:ring-2 focus:ring-offset-1
+      ${
+        activeFolderInputs.length === 0
+          ? 'border-blue-200 text-blue-300 cursor-not-allowed'
+          : 'border-[0.6px] border-blue-400 text-blue-700 hover:bg-blue-50 focus:ring-blue-500'
+      }`}
+  >
+    <DownIcon className="w-3.5 h-3.5" aria-hidden="true" />
+    <span>Generate New</span>
+  </button>
+</div>
+
 
             {/* Output Files */}
             <OutputFilesSection
-              files={activeFolderOutputs}
-              hasInputFiles={activeFolderInputs.length > 0}
-              onGenerate={handleGenerateOutput}
-              onDownload={handleDownloadOutput}
-              onPreview={handlePreviewOutput}
-              onDelete={handleDeleteOutput}
-            />
+  files={activeFolderOutputs}
+  hasInputFiles={activeFolderInputs.length > 0}
+  onGenerate={handleGenerateOutput}
+  onDownload={handleDownloadOutput}
+  onPreview={handlePreviewOutput}
+  onDelete={handleDeleteOutput}
+/>
           </div>
         </main>
       </div>
