@@ -159,7 +159,7 @@ export default function FolderItem({
           )}
         </div>
 
-        {isActive && <ChevronRight className="w-4 h-4 text-blue-500 flex-shrink-0" />}
+     
 
         {/* Kebab menu (keep as real buttons; stop propagation) */}
         {!isEditing && (
