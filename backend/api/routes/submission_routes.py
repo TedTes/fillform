@@ -424,7 +424,6 @@ def delete_submission(submission_id):
 
 
 
-
 @submission_bp.route('/submissions/<submission_id>/preview-input', methods=['GET'])
 def preview_input_pdf(submission_id):
     """
@@ -437,10 +436,14 @@ def preview_input_pdf(submission_id):
         PDF file for preview (inline, not download)
     """
     try:
+        # Get backend root directory
+        backend_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+        
         # Load metadata
-        metadata_path = os.path.join('storage/data', f"{submission_id}_meta.json")
+        metadata_path = os.path.join(backend_root, 'storage', 'data', f"{submission_id}_meta.json")
         
         if not os.path.exists(metadata_path):
+            print(f"Metadata not found: {metadata_path}")
             return jsonify({'error': 'Submission not found'}), 404
         
         import json
@@ -449,15 +452,19 @@ def preview_input_pdf(submission_id):
         
         file_path = metadata.get('upload_path')
         
-        if not file_path or not os.path.exists(file_path):
-            return jsonify({'error': 'File not found'}), 404
+        if not file_path:
+            return jsonify({'error': 'File path not found in metadata'}), 404
         
-        # Get absolute path
+        # Convert to absolute path if relative
         if not os.path.isabs(file_path):
-            backend_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
             file_path = os.path.join(backend_root, file_path)
         
-        # Return PDF inline for preview (NOT as attachment)
+        print(f"Looking for file at: {file_path}")
+        
+        if not os.path.exists(file_path):
+            return jsonify({'error': f'File not found: {file_path}'}), 404
+        
+        # Return PDF inline for preview
         from flask import Response
         with open(file_path, 'rb') as f:
             pdf_data = f.read()
@@ -469,8 +476,9 @@ def preview_input_pdf(submission_id):
         
     except Exception as e:
         print(f"Preview error: {str(e)}")
+        import traceback
+        traceback.print_exc()
         return jsonify({'error': str(e)}), 500
-
 
 
 @submission_bp.route('/submissions/<submission_id>/preview-output', methods=['GET'])
@@ -485,10 +493,20 @@ def preview_output_pdf(submission_id):
         PDF file for preview (inline, not download)
     """
     try:
+        # Get backend root directory
+        backend_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+        
+        # Get output path using service
         file_path = submission_service.get_output_path(submission_id)
         
+        # Ensure absolute path
+        if not os.path.isabs(file_path):
+            file_path = os.path.join(backend_root, file_path)
+        
+        print(f"Looking for output file at: {file_path}")
+        
         if not os.path.exists(file_path):
-            return jsonify({'error': 'File not found'}), 404
+            return jsonify({'error': f'File not found: {file_path}'}), 404
         
         # Return PDF inline for preview
         from flask import Response
@@ -502,4 +520,6 @@ def preview_output_pdf(submission_id):
         
     except Exception as e:
         print(f"Preview error: {str(e)}")
+        import traceback
+        traceback.print_exc()
         return jsonify({'error': str(e)}), 500
