@@ -282,6 +282,21 @@ export async function createFolder(name: string): Promise<Folder> {
     handleApiError(error)
   }
 }
+
+export async function renameFolder(id: string, name: string) {
+  try {
+    const response = await api.put<ApiResponse<{ folder: Folder }>>(`/folders/${id}`, { name })
+    if (!response.data.success) {
+      throw new Error((response.data as any).error || 'Failed to rename folder')
+    }
+    // backend returns { success, folder }
+    return (response.data as any).folder as Folder
+  } catch (error) {
+    handleApiError(error)
+  }
+}
+
+
 /**
  * Get folder by ID.
  */

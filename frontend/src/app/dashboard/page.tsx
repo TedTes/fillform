@@ -1,6 +1,6 @@
 'use client'
 
-import { useState ,useEffect} from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import type { Folder, InputFile, OutputFile } from '@/types'
 import FolderPanel from '@/components/FolderPanel'
@@ -10,189 +10,250 @@ import GenerateModal from '@/components/GenerateModal'
 import useToast from '@/hooks/useToast'
 import PdfPreviewModal from '@/components/PdfPreviewModal'
 import { getInputPreviewUrl, getOutputPreviewUrl } from '@/lib/api-client'
-import { 
-  getFolders, 
+import {
+  getFolders,
   createFolder as apiCreateFolder,
   uploadPdfToFolder,
   batchFillPdfs,
   downloadPdf as apiDownloadPdf,
   getFolder,
-  deleteSubmission
+  deleteSubmission,
+
+  deleteFolder as apiDeleteFolder,
+  renameFolder as apiRenameFolder,
 } from '@/lib/api-client'
+
 export default function Home() {
-  // Toast
   const toast = useToast()
   const router = useRouter()
-  // State
+
+  // ---------- State ----------
   const [folders, setFolders] = useState<Folder[]>([])
-  const [activeFolder, setActiveFolder] = useState<Folder>()
+  const [activeFolder, setActiveFolder] = useState<Folder | null>(null)
   const [inputFiles, setInputFiles] = useState<InputFile[]>([])
   const [outputFiles, setOutputFiles] = useState<OutputFile[]>([])
   const [isGenerateModalOpen, setIsGenerateModalOpen] = useState(false)
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
-  // Derived state
-  const activeFolderInputs = inputFiles.filter((f) => f.folder_id === activeFolder?.id)
-  const activeFolderOutputs = outputFiles.filter((f) => f.folderId === activeFolder?.id)
+
+  // Derived 
+  const activeFolderId = activeFolder?.folder_id
+  const activeFolderInputs = inputFiles.filter((f) => f.folder_id === activeFolderId)
+  const activeFolderOutputs = outputFiles.filter((f) => f.folderId === activeFolderId)
+
   const [previewFile, setPreviewFile] = useState<{
     url: string
     filename: string
     type: 'input' | 'output'
   } | null>(null)
-   // Load folders on mount
-   useEffect(() => {
+
+  // ---------- Effects ----------
+  useEffect(() => {
     loadFolders()
   }, [])
+
   useEffect(() => {
-    if (activeFolder) {
-      loadFolderSubmissions(activeFolder.folder_id)
+    if (activeFolderId) {
+      loadFolderSubmissions(activeFolderId)
+    } else {
+      setInputFiles([])
+      setOutputFiles([])
     }
-  }, [activeFolder])
-  // Update folder file counts
+  }, [activeFolderId])
+
+  // ---------- Helpers ----------
   const updateFolderCounts = () => {
     setFolders((prev) =>
       prev.map((folder) => ({
         ...folder,
-        fileCount: inputFiles.filter((f) => f.folder_id === folder.id).length,
+        // backend uses file_count
+        file_count: inputFiles.filter((f) => f.folder_id === folder.folder_id).length,
       }))
     )
   }
+
   const loadFolders = async () => {
     try {
       setIsLoading(true)
-      const fetchedFolders = await getFolders()
-     
-      // Transform backend format to frontend format
-      const transformedFolders = fetchedFolders.map(f => ({
+      const fetched = await getFolders()
+
+      // normalize
+      const transformed = fetched.map((f) => ({
         id: f.folder_id,
-        folder_id:f.folder_id,
+        folder_id: f.folder_id, 
         name: f.name,
         created_at: f.created_at,
-        file_count: f.file_count
+        file_count: f.file_count ?? 0,
       }))
-      
-      setFolders(transformedFolders)
-      
-      if (transformedFolders.length > 0) {
-        setActiveFolder(transformedFolders[0])
+
+      setFolders(transformed)
+      if (transformed.length > 0) {
+     
+        setActiveFolder((cur) => {
+          if (!cur) return transformed[0]
+          const still = transformed.find((x) => x.folder_id === cur.folder_id)
+          return still ?? transformed[0]
+        })
+      } else {
+        setActiveFolder(null)
       }
-    } catch (error) {      
-      console.error('Failed to load folders:', error)
+    } catch (err) {
+      console.error('Failed to load folders:', err)
       toast.error('Failed to connect to server')
     } finally {
       setIsLoading(false)
     }
   }
+
   const loadFolderSubmissions = async (folderId: string) => {
     try {
       const folder = await getFolder(folderId)
 
-      // Transform submissions to InputFiles
-      const inputs: InputFile[] = folder.submissions?.map((sub: any) => ({
-        id: sub.submission_id,
-        folder_id: folderId,
-        filename: sub.filename,
-        size: 2000000, // Default size, backend doesn't return this
-        status: sub.status === 'filled'? 'filled': 'ready',
-        uploadedAt: sub.uploaded_at,
-        confidence: sub.confidence,
-      })) || []
-      
+      const inputs: InputFile[] =
+        folder.submissions?.map((sub: any) => ({
+          id: sub.submission_id,
+          folder_id: folderId,
+          filename: sub.filename,
+          size: 2000000,
+          status: sub.status === 'filled' ? 'filled' : 'ready',
+          uploadedAt: sub.uploaded_at,
+          confidence: sub.confidence,
+        })) ?? []
+
       setInputFiles(inputs)
 
-      // Check for outputs (filled PDFs)
       const outputs: OutputFile[] = inputs
-        .filter(input => {
-          // Check if this submission has been filled
-          return folder.submissions_detailed?.some((s: any) => 
-            s.submission_id === input.id && s.status === 'filled'
+        .filter((input) =>
+          folder.submissions_detailed?.some(
+            (s: any) => s.submission_id === input.id && s.status === 'filled'
           )
-        })
-        .map(input => ({
-          id: input.id,
+        )
+        .map((input) => ({
+          id: input.id, // align id with submission_id for ready outputs
           folderId: folderId,
           inputFileId: input.id,
           inputFilename: input.filename,
           filename: `${input.filename.replace('.pdf', '')}_filled.pdf`,
           size: input.size + 100000,
-          status: 'filled' as const ,
+          status: 'filled' as const,
           generatedAt: input.uploadedAt,
         }))
-      
+
       setOutputFiles(outputs)
-      
-    } catch (error) {
-      console.error('Failed to load folder submissions:', error)
-      // Don't show error toast - not critical
+    } catch (err) {
+      console.error('Failed to load folder submissions:', err)
+      // non-fatal
     }
   }
-  // Folder Actions
+
+  // ---------- Folder Actions ----------
   const handleNewFolder = async () => {
     const name = prompt('Enter folder name:')
     if (!name || name.trim() === '') return
+    const clean = name.trim()
 
     try {
-      const newFolder = await apiCreateFolder(name.trim())
-      
-      const transformedFolder = {
+      const newFolder = await apiCreateFolder(clean)
+      const transformed = {
+        id: newFolder.folder_id,
         folder_id: newFolder.folder_id,
         name: newFolder.name,
         created_at: newFolder.created_at,
-        file_count: 0
+        file_count: 0,
       }
-      
-      setFolders((prev) => [transformedFolder, ...prev])
-      setActiveFolder(transformedFolder)
-      toast.success(`Folder "${name.trim()}" created successfully`)
-      console.log('✅ Created folder:', name)
-    } catch (error) {
-      console.error('Failed to create folder:', error)
+      setFolders((prev) => [transformed, ...prev])
+      setActiveFolder(transformed)
+      toast.success(`Folder "${clean}" created successfully`)
+    } catch (err) {
+      console.error('Failed to create folder:', err)
       toast.error('Failed to create folder')
     }
   }
 
-  // File Upload Actions
+  const handleRename = async (folderId: string, newName: string) => {
+    const clean = newName.trim()
+    if (!clean) return
+    // optimistic
+    const prev = folders
+    setFolders((p) => p.map((f) => (f.folder_id === folderId ? { ...f, name: clean } : f)))
+    if (activeFolderId === folderId) {
+      setActiveFolder((cur) => (cur ? { ...cur, name: clean } : cur))
+    }
+    try {
+      const updated = await apiRenameFolder(folderId, clean)
+      // reconcile with server response (in case of normalization)
+      setFolders((p) => p.map((f) => (f.folder_id === folderId ? { ...f, ...updated, id: updated.folder_id } : f)))
+      if (activeFolderId === folderId) {
+        setActiveFolder((cur) => (cur ? { ...cur, ...updated, id: updated.folder_id } : cur))
+      }
+      toast.success('Folder renamed')
+    } catch (err) {
+      // rollback
+      setFolders(prev)
+      toast.error('Failed to rename folder')
+    }
+  }
+
+  const handleDelete = async (folderId: string) => {
+    const prev = folders
+    const next = prev.filter((f) => f.folder_id !== folderId)
+    // optimistic
+    setFolders(next)
+    if (activeFolderId === folderId) {
+      setActiveFolder(next[0] ?? null)
+      setInputFiles([])
+      setOutputFiles([])
+    }
+    try {
+      await apiDeleteFolder(folderId)
+      toast.info('Folder deleted')
+    } catch (err) {
+      // rollback
+      setFolders(prev)
+      // restore active if needed
+      if (activeFolderId === folderId) {
+        const restored = prev.find((f) => f.folder_id === folderId) ?? null
+        setActiveFolder(restored)
+      }
+      toast.error('Failed to delete folder')
+    }
+  }
+
+  // ---------- File Upload ----------
   const handleUploadFiles = async () => {
-    if (!activeFolder) {
+    if (!activeFolderId) {
       toast.error('No active folder')
       return
     }
-
-    // Create file input
     const input = document.createElement('input')
     input.type = 'file'
     input.accept = '.pdf'
     input.multiple = true
-    
+
     input.onchange = async (e) => {
       const target = e.target as HTMLInputElement
       const files = Array.from(target.files || [])
-      
       if (files.length === 0) return
-      
+
       toast.info(`Uploading ${files.length} file${files.length > 1 ? 's' : ''}...`)
-      
+
       for (const file of files) {
         try {
-          // Create temporary input file entry
-          const tempFile: InputFile = {
+          const temp: InputFile = {
             id: `temp-${Date.now()}-${Math.random()}`,
-            folder_id: activeFolder.folder_id,
+            folder_id: activeFolderId,
             filename: file.name,
             size: file.size,
             status: 'uploading',
             uploadedAt: new Date().toISOString(),
           }
-          
-          setInputFiles((prev) => [...prev, tempFile])
-          
-          // Upload to backend
-          const result = await uploadPdfToFolder(activeFolder.folder_id, file)
-          
-          // Update with real data
+          setInputFiles((prev) => [...prev, temp])
+
+          const result = await uploadPdfToFolder(activeFolderId, file)
+
           setInputFiles((prev) =>
             prev.map((f) =>
-              f.id === tempFile.id
+              f.id === temp.id
                 ? {
                     ...f,
                     id: result.submission_id,
@@ -202,48 +263,39 @@ export default function Home() {
                 : f
             )
           )
-          
-        } catch (error) {
-          console.error('Upload failed:', error)
+        } catch (err) {
+          console.error('Upload failed:', err)
           toast.error(`Failed to upload ${file.name}`)
-          
-          // Remove failed upload
           setInputFiles((prev) => prev.filter((f) => f.filename !== file.name))
         }
       }
-      
+
       toast.success(`${files.length} file${files.length > 1 ? 's' : ''} uploaded successfully`)
-      
-      // Reload folder to update counts
       loadFolders()
     }
-    
+
     input.click()
   }
 
+  // ---------- Input file actions ----------
   const handleRemoveFile = async (fileId: string) => {
     const file = inputFiles.find((f) => f.id === fileId)
     if (!file) return
 
-    const confirmed = confirm(`Remove ${file.filename}?`)
-    if (!confirmed) return
+    if (!confirm(`Remove ${file.filename}?`)) return
     try {
-      // Delete from backend first
       await deleteSubmission(fileId)
       setInputFiles((prev) => prev.filter((f) => f.id !== fileId))
       setOutputFiles((prev) => prev.filter((f) => f.inputFileId !== fileId))
-      
       toast.info(`File "${file.filename}" removed`)
-      console.log('✅ Removed file:', file.filename)
       updateFolderCounts()
-    } catch(error) {
-      console.error('Failed to delete file:', error)
+    } catch (err) {
+      console.error('Failed to delete file:', err)
       toast.error('Failed to delete file')
     }
-
   }
 
-  // Generate Actions
+  // ---------- Generate ----------
   const handleGenerateOutput = () => {
     if (activeFolderInputs.length === 0) {
       toast.warning('No input files to process')
@@ -255,122 +307,94 @@ export default function Home() {
   const handleGenerate = async (selectedFileIds: string[]) => {
     try {
       toast.info(`Generating ${selectedFileIds.length} output file${selectedFileIds.length > 1 ? 's' : ''}...`)
-      
-      // Create placeholder outputs
-      const newOutputs: OutputFile[] = selectedFileIds.map((inputFileId) => {
-        const inputFile = inputFiles.find((f) => f.id === inputFileId)
-        if (!inputFile) return null
 
-        return {
-          id: `generating-${Date.now()}-${Math.random()}`,
-          folderId: activeFolder!.id,
-          inputFileId: inputFile.id,
-          inputFilename: inputFile.filename,
-          filename: `ACORD_126_filled_${Date.now()}.pdf`,
-          size: inputFile.size + 100000,
-          status: 'generating' as const,
-          generatedAt: new Date().toISOString(),
-        }
-      }).filter(Boolean) as OutputFile[]
+      const newOutputs: OutputFile[] = selectedFileIds
+        .map((inputFileId) => {
+          const inputFile = inputFiles.find((f) => f.id === inputFileId)
+          if (!inputFile || !activeFolderId) return null
+          return {
+            id: `generating-${Date.now()}-${Math.random()}`,
+            folderId: activeFolderId,
+            inputFileId: inputFile.id,
+            inputFilename: inputFile.filename,
+            filename: `ACORD_126_filled_${Date.now()}.pdf`,
+            size: inputFile.size + 100000,
+            status: 'generating' as const,
+            generatedAt: new Date().toISOString(),
+          }
+        })
+        .filter(Boolean) as OutputFile[]
 
       setOutputFiles((prev) => [...prev, ...newOutputs])
-      
-      // Call backend batch fill
+
       const results = await batchFillPdfs(selectedFileIds)
-      
-      // Update outputs with results
+
       setOutputFiles((prev) =>
         prev.map((output) => {
-          const result = results.find(r => r.submission_id === output.inputFileId)
-          if (result) {
-            return {
-              ...output,
-              id: output.inputFileId, // Use submission_id as output id
-              status: 'ready' as const,
-              fieldsWritten: result.fill_report.written,
-              fieldsSkipped: result.fill_report.skipped,
-            }
-          }
-          return output
+          const result = results.find((r) => r.submission_id === output.inputFileId)
+          return result
+            ? {
+                ...output,
+                id: output.inputFileId,
+                status: 'ready' as const,
+                fieldsWritten: result.fill_report.written,
+                fieldsSkipped: result.fill_report.skipped,
+              }
+            : output
         })
       )
-      
+
       toast.success(`${selectedFileIds.length} output file${selectedFileIds.length > 1 ? 's' : ''} generated successfully`)
-      console.log('✅ Generation complete!')
-      if (activeFolder) {
-        await loadFolderSubmissions(activeFolder.folder_id)
-      }
-      
-    } catch (error) {
-      console.error('Generation failed:', error)
+      if (activeFolderId) await loadFolderSubmissions(activeFolderId)
+    } catch (err) {
+      console.error('Generation failed:', err)
       toast.error('Failed to generate outputs')
-      
-      // Remove generating outputs
       setOutputFiles((prev) => prev.filter((f) => f.status !== 'generating'))
     }
   }
 
-  // Output Actions
+  // ---------- Output actions ----------
   const handleDownloadOutput = async (fileId: string) => {
     try {
       toast.success('Downloading file...')
       await apiDownloadPdf(fileId)
-      console.log('📥 Downloaded:', fileId)
-    } catch (error) {
-      console.error('Download failed:', error)
+    } catch (err) {
+      console.error('Download failed:', err)
       toast.error('Failed to download file')
     }
   }
 
-
-
   const handleDeleteOutput = (fileId: string) => {
     const file = outputFiles.find((f) => f.id === fileId)
     if (!file) return
-
-    const confirmed = confirm(`Delete ${file.filename}?`)
-    if (!confirmed) return
-
+    if (!confirm(`Delete ${file.filename}?`)) return
     setOutputFiles((prev) => prev.filter((f) => f.id !== fileId))
     toast.info(`Output file "${file.filename}" deleted`)
-    console.log('✅ Deleted output:', file.filename)
   }
+
+  // ---------- Preview ----------
   const handlePreviewInput = (fileId: string) => {
     const file = inputFiles.find((f) => f.id === fileId)
     if (!file) return
-
-    setPreviewFile({
-      url: getInputPreviewUrl(fileId),
-      filename: file.filename,
-      type: 'input',
-    })
+    setPreviewFile({ url: getInputPreviewUrl(fileId), filename: file.filename, type: 'input' })
   }
 
   const handlePreviewOutput = (fileId: string) => {
     const file = outputFiles.find((f) => f.id === fileId)
     if (!file) return
-
-    setPreviewFile({
-      url: getOutputPreviewUrl(fileId),
-      filename: file.filename,
-      type: 'output',
-    })
+    setPreviewFile({ url: getOutputPreviewUrl(fileId), filename: file.filename, type: 'output' })
   }
 
-  const handleClosePreview = () => {
-    setPreviewFile(null)
-  }
-  const handleGetStarted = () => {
-    router.push('/dashboard')
-  }
+  const handleClosePreview = () => setPreviewFile(null)
 
-  const handleLogoClick = () => {
-    router.push('/landing')
-  }
-  
+  // ---------- Nav ----------
+  const handleGetStarted = () => router.push('/dashboard')
+  const handleLogoClick = () => router.push('/landing')
+
+  // ---------- Render ----------
   if (isLoading) {
     return (
-      <div className="min-h-screen  flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full mx-auto mb-4"></div>
           <p className="text-gray-600">Loading folders...</p>
@@ -378,6 +402,7 @@ export default function Home() {
       </div>
     )
   }
+
   if (!activeFolder) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -395,37 +420,26 @@ export default function Home() {
   }
 
   return (
-    <div className="min-h-screen ">
-      {/* Header */}
+    <div className="min-h-screen">
       {/* Header */}
       <header className="bg-white border-b border-gray-200">
         <div className="px-4 lg:px-4 py-3 lg:py-4">
           <div className="flex items-center justify-between">
-            {/* Logo Section - Left Side */}
             <div className="flex items-center gap-2.5 lg:gap-3">
-              {/* Logo Icon */}
               <div className="relative">
                 <div className="w-9 h-9 lg:w-10 lg:h-10 bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg flex items-center justify-center shadow-md">
                   <svg className="w-5 h-5 lg:w-6 lg:h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                   </svg>
                 </div>
-                {/* Accent dot */}
                 <div className="absolute -top-0.5 -right-0.5 lg:-top-1 lg:-right-1 w-2.5 h-2.5 lg:w-3 lg:h-3 bg-green-500 rounded-full border-2 border-white"></div>
               </div>
-
-              {/* Logo Text */}
               <div className="text-left">
-                <h1 className="text-lg lg:text-xl font-bold text-gray-900 tracking-tight leading-none">
-                  AutoFil
-                </h1>
-                <p className="text-[10px] lg:text-xs text-gray-500 leading-tight mt-0.5">
-                  ACORD Form Filler
-                </p>
+                <h1 className="text-lg lg:text-xl font-bold text-gray-900 tracking-tight leading-none">AutoFil</h1>
+                <p className="text-[10px] lg:text-xs text-gray-500 leading-tight mt-0.5">ACORD Form Filler</p>
               </div>
             </div>
 
-            {/* Mobile Menu Button - Right Side */}
             <button
               onClick={() => setIsMobileMenuOpen(true)}
               className="lg:hidden p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
@@ -439,42 +453,43 @@ export default function Home() {
         </div>
       </header>
 
-      {/* Main Layout: Two Panels */}
+      {/* Main */}
       <div className="flex h-[calc(100vh-73px)] lg:h-[calc(100vh-89px)]">
-        {/* Left Panel: Folders */}
+        {/* Left Panel */}
         <FolderPanel
           folders={folders}
           activeFolder={activeFolder}
           onFolderClick={setActiveFolder}
           onNewFolder={handleNewFolder}
+          onRename={handleRename}
+          onDelete={handleDelete}
           isMobileOpen={isMobileMenuOpen}
           onMobileToggle={() => setIsMobileMenuOpen(false)}
         />
 
-        {/* Right Panel: Content */}
-        <main className="flex-1 overflow-y-auto w-full ">
+        {/* Right Panel */}
+        <main className="flex-1 overflow-y-auto w-full">
           <div className="p-6 lg:p-8 max-w-6xl mx-auto">
             {/* Folder Header */}
             <div className="mb-8 pb-5 border-b border-gray-200">
-                <div>
-                  <h2 className="text-2xl font-bold text-gray-900">{activeFolder.name}</h2>
-                  <p className="text-sm text-gray-500 mt-1">
-                    {activeFolderInputs.length} input • {activeFolderOutputs.length} output
-                  </p>
-                </div>
-                </div>
-              
+              <div>
+                <h2 className="text-2xl font-bold text-gray-900">{activeFolder.name}</h2>
+                <p className="text-sm text-gray-500 mt-1">
+                  {activeFolderInputs.length} input • {activeFolderOutputs.length} output
+                </p>
+              </div>
+            </div>
 
-             {/* Input Files Section */}
-             <InputFilesSection
+            {/* Input Files */}
+            <InputFilesSection
               files={activeFolderInputs}
               onUpload={handleUploadFiles}
               onRemove={handleRemoveFile}
               onPreview={handlePreviewInput}
             />
 
-              {/* Output Files Section */}
-              <OutputFilesSection
+            {/* Output Files */}
+            <OutputFilesSection
               files={activeFolderOutputs}
               hasInputFiles={activeFolderInputs.length > 0}
               onGenerate={handleGenerateOutput}
@@ -509,5 +524,4 @@ export default function Home() {
       )}
     </div>
   )
-
 }
