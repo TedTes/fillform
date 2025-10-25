@@ -4,7 +4,7 @@ API layer for AutoFil application.
 
 from flask import Flask
 from flask_cors import CORS
-
+import os
 
 def create_app():
     """
@@ -14,16 +14,14 @@ def create_app():
         Configured Flask app
     """
     app = Flask(__name__)
-    
     # Enable CORS for frontend
     CORS(app, resources={
         r"/api/*": {
-            "origins": ["http://localhost:3000"],  # Next.js dev server
+            "origins": os.environ.get("CORS_ORIGINS","http://localhost:5000"), 
             "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
             "allow_headers": ["Content-Type"]
         }
     })
-    
     # Configuration
     app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max file size
     app.config['UPLOAD_FOLDER'] = 'storage/uploads'
