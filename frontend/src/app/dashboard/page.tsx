@@ -424,7 +424,7 @@ export default function Home() {
   return (
     <div className="min-h-screen">
       {/* Header */}
-      <header className="bg-white border-b border-gray-200">
+      <header className="bg-white border-b border-gray-200 ml-1">
         <div className="px-4 lg:px-4 py-3 lg:py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2.5 lg:gap-3">
@@ -456,7 +456,7 @@ export default function Home() {
       </header>
 
       {/* Main */}
-      <div className="flex h-[calc(100vh-73px)] lg:h-[calc(100vh-89px)]">
+      <div className="flex h-[calc(100vh-73px)] lg:h-[calc(100vh-89px)] ml-10 mt-8">
         {/* Left Panel */}
         <FolderPanel
           folders={folders}
@@ -470,7 +470,7 @@ export default function Home() {
         />
 
         {/* Right Panel */}
-        <main className="flex-1 overflow-y-auto w-full">
+        <main className="flex-1 overflow-y-auto w-full ml-3">
           <div className="p-6 lg:p-8 max-w-6xl mx-auto">
             {/* Folder Header */}
    
