@@ -9,7 +9,7 @@ export interface Submission {
   status: 'uploaded' | 'extracted' | 'filled'
   confidence?: number
   warnings?: string[]
-  data?: any
+  data?: unknown
   outputFilename?: string
 }
 
@@ -23,5 +23,5 @@ export interface FillReport {
 export interface ExtractionResult {
   confidence: number
   warnings: string[]
-  data: any
+  data: unknown
 }

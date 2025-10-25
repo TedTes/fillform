@@ -110,16 +110,15 @@ export default function Home() {
   const loadFolderSubmissions = async (folderId: string) => {
     try {
       const folder = await getFolder(folderId)
-
       const inputs: InputFile[] =
-        folder.submissions?.map((sub: any) => ({
+        folder.submissions?.map((sub) => ({
           id: sub.submission_id,
           folder_id: folderId,
           filename: sub.filename,
           size: 2000000,
           status: sub.status === 'filled' ? 'filled' : 'ready',
           uploadedAt: sub.uploaded_at,
-          confidence: sub.confidence,
+          confidence: sub.confidence
         })) ?? []
 
       setInputFiles(inputs)
@@ -127,7 +126,7 @@ export default function Home() {
       const outputs: OutputFile[] = inputs
         .filter((input) =>
           folder.submissions_detailed?.some(
-            (s: any) => s.submission_id === input.id && s.status === 'filled'
+            (s) => s.submission_id === input.id && s.status === 'filled'
           )
         )
         .map((input) => ({

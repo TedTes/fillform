@@ -28,17 +28,17 @@ export default function FolderList({
           </svg>
         </div>
         <p className="text-sm font-medium text-gray-700 mb-1">No folders yet</p>
-        <p className="text-xs text-gray-500">Click "New Folder" to create one</p>
+        <p className="text-xs text-gray-500">Click &quot;New Folder&quot; to create one</p>
       </div>
     )
   }
 
-  const activeId = (activeFolder as any)?.folder_id ?? (activeFolder as any)?.id
+  const activeId = (activeFolder)?.folder_id ?? (activeFolder)?.id
 
   return (
     <div className="space-y-1 ml-2">
       {folders.map((folder) => {
-        const fid = (folder as any).folder_id ?? (folder as any).id
+        const fid = (folder).folder_id ?? (folder).id
         return (
           <FolderItem
             key={fid}

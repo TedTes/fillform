@@ -1,16 +1,27 @@
 /**
  * Folder types for file organization.
  */
+import { SubmissionDetail } from "./api";
 
+
+export interface IFolderInputFiles {
+    submission_id: string;
+    filename: string;
+    uploaded_at: string;
+    status: string;
+    confidence?:number;
+}
 export interface Folder {
   id?: string;  // Keep for frontend compatibility
   folder_id: string;  // Backend uses this
   name: string;
   created_at: string;
   file_count: number;
-  submissions?: any[]
-  submissions_detailed?: any[]
+  submissions?: IFolderInputFiles[]
+  submissions_detailed?: SubmissionDetail[]
 }
+
+
   export interface InputFile {
     id: string
     folder_id: string

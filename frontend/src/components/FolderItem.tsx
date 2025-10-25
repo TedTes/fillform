@@ -31,7 +31,7 @@ export default function FolderItem({
   onRename,
   onDelete,
 }: FolderItemProps) {
-  const fid = (folder as any).folder_id ?? (folder as any).id
+  const fid = (folder).folder_id ?? (folder).id
 
   const [menuOpen, setMenuOpen] = useState(false)
   const [isEditing, setIsEditing] = useState(false)

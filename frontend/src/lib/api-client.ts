@@ -148,7 +148,7 @@ export async function getSubmission(id: string): Promise<SubmissionDetail> {
  */
 export async function updateSubmission(
   id: string,
-  data: any
+  data:SubmissionDetail
 ): Promise<SubmissionDetail> {
   try {
     const response = await api.put<ApiResponse<{ submission: SubmissionDetail }>>(
@@ -287,10 +287,10 @@ export async function renameFolder(id: string, name: string) {
   try {
     const response = await api.put<ApiResponse<{ folder: Folder }>>(`/folders/${id}`, { name })
     if (!response.data.success) {
-      throw new Error((response.data as any).error || 'Failed to rename folder')
+      throw new Error((response.data).error || 'Failed to rename folder')
     }
     // backend returns { success, folder }
-    return (response.data as any).folder as Folder
+    return (response.data as {success:boolean, folder:Folder}).folder as Folder
   } catch (error) {
     handleApiError(error)
   }
@@ -386,7 +386,7 @@ export async function uploadMultiplePdfsToFolder(
     })
     formData.append('folder_id', folderId)
 
-    const response = await api.post<ApiResponse<any>>(
+    const response = await api.post(
       '/submissions/upload',
       formData,
       {
