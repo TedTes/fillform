@@ -39,11 +39,12 @@ if __name__ == '__main__':
     
     init_default_folders()
     
-    print("\n🌐 Server starting on http://0.0.0.0:5000")
+    port = int(os.environ.get("PORT", 5000))
+    print(f"\n🌐 Server starting on http://0.0.0.0:{port}")
     print("="*50 + "\n")
     
     app.run(
         host='0.0.0.0',
-        port=5000,
-        debug=True
+        port=port,
+        debug=False
     )
