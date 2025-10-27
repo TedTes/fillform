@@ -66,19 +66,33 @@ export default function LandingPage() {
           <p className="text-sm text-gray-600 h-5 py-2">No signup required • Works directly in your browser</p>
         </div>
 
-        {/* Demo Video */}
-        <div className="w-full max-w-7xl mx-auto px-30">
-          <div className="relative aspect-video overflow-hidden rounded-xl shadow-md mx-11">
-            <video
-              src="/Screen-Recording-2025-10-24-at-8-25-39-PM.mp4"
-              autoPlay
-              muted
-              loop
-              playsInline
-              className="w-full h-full"
-            />
-          </div>
-        </div>
+     
+{/* Demo Video */}
+<div className="w-full flex justify-center py-10">
+  <div
+    className="
+      relative overflow-hidden rounded-2xl shadow-lg
+      w-[85vw] h-[85vw]          /* base: almost full-width square on phones */
+      sm:w-[65vw] sm:h-[65vw]    /* slightly smaller square on tablets */
+      md:w-[65vw] md:h-[65vw]    /* balanced for midsize screens */
+      lg:w-[50vw] lg:h-[60vh]    /* target size on large desktops */
+      max-w-[1000px]             /* prevent it from exploding on ultrawide */
+    "
+  >
+    <video
+      src="/Screen-Recording-2025-10-24-at-8-25-39-PM.mp4"
+      autoPlay
+      muted
+      loop
+      playsInline
+      preload="metadata"
+      className="absolute inset-0 w-full h-full object-cover object-center"
+    />
+  </div>
+</div>
+
+
+
       </section>
 
       {/* HOW IT WORKS */}
