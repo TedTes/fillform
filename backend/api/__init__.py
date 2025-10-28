@@ -1,5 +1,5 @@
 """
-API layer for AutoFil application.
+API initialization and configuration.
 """
 
 from flask import Flask
@@ -23,18 +23,36 @@ def create_app():
         }
     })
     # Configuration
-    app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max file size
+    app.config['MAX_CONTENT_LENGTH'] = 50 * 1024 * 1024  # 50MB max file size
     app.config['UPLOAD_FOLDER'] = 'storage/uploads'
     app.config['OUTPUT_FOLDER'] = 'storage/outputs'
-    app.config['TEMPLATE_FOLDER'] = 'templates'
+    
+    # Create storage directories
+    os.makedirs('storage/uploads', exist_ok=True)
+    os.makedirs('storage/outputs', exist_ok=True)
+    os.makedirs('storage/data', exist_ok=True)
+    os.makedirs('storage/folders', exist_ok=True)
     
     # Register blueprints
     from .routes.submission_routes import submission_bp
-    from .routes.health_routes import health_bp
     from .routes.folder_routes import folder_bp
+    from .routes.health_routes import health_bp
     
     app.register_blueprint(submission_bp, url_prefix='/api')
-    app.register_blueprint(health_bp, url_prefix='/api')
     app.register_blueprint(folder_bp, url_prefix='/api')
+    app.register_blueprint(health_bp, url_prefix='/api')
+    
+    @app.route('/')
+    def index():
+        return {
+            'message': 'ACORD Extraction API',
+            'status': 'running',
+            'endpoints': {
+                'health': '/api/health',
+                'ready': '/api/ready',
+                'submissions': '/api/submissions',
+                'folders': '/api/folders'
+            }
+        }
     
     return app
