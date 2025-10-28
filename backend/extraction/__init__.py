@@ -12,7 +12,8 @@ from .parsers import (
     OcrParser,
     OcrFallbackParser,
     TableParser,
-    ExcelParser
+    ExcelParser,
+    ImageParser
 )
 
 __all__ = [
@@ -25,5 +26,6 @@ __all__ = [
     'OcrParser',
     'OcrFallbackParser',
     'TableParser',
-    'ExcelParser'
+    'ExcelParser',
+    'ImageParser'
 ]
