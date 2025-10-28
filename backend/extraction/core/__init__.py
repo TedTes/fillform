@@ -9,7 +9,14 @@ from .schema import SchemaRegistry
 from .file_loader import UniversalFileLoader, MimeDetector, FileTypeRegistry, reader_registry
 
 # Import readers to trigger auto-registration
-from .readers import PdfReader, ExcelReader, ImageReader, TextReader, GenericReader
+from .readers import (
+    PdfReader, 
+    ExcelReader, 
+    ImageReader, 
+    TextReader, 
+    DocxReader,
+    GenericReader
+)
 
 __all__ = [
     'Document',
@@ -27,5 +34,6 @@ __all__ = [
     'ExcelReader',
     'ImageReader',
     'TextReader',
+    'DocxReader',
     'GenericReader'
 ]
