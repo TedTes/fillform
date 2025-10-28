@@ -7,10 +7,15 @@ from .interfaces.parser import IParser
 from .interfaces.mapper import IMapper
 from .models.extraction_result import ExtractionResult
 from .extractors import Acord126Extractor
+from .parsers import PdfFieldParser, OcrParser, OcrFallbackParser
+
 __all__ = [
     'IExtractor',
     'IParser',
     'IMapper',
     'ExtractionResult',
-    'Acord126Extractor'
+    'Acord126Extractor',
+    'PdfFieldParser',
+    'OcrParser',
+    'OcrFallbackParser'
 ]
