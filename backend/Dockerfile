@@ -1,0 +1,75 @@
+# Use Python 3.11 slim as base image
+FROM python:3.11-slim
+
+# Set working directory
+WORKDIR /app
+
+# Set environment variables
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PIP_NO_CACHE_DIR=1 \
+    PIP_DISABLE_PIP_VERSION_CHECK=1
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    # OpenCV dependencies
+    libgl1-mesa-glx \
+    libglib2.0-0 \
+    libsm6 \
+    libxext6 \
+    libxrender1 \
+    libgomp1 \
+    libgthread-2.0-0 \
+    libavcodec58 \
+    libavformat58 \
+    libswscale5 \
+    # Ghostscript for Camelot
+    ghostscript \
+    # Tkinter for table extraction
+    python3-tk \
+    tk-dev \
+    # Poppler for pdf2image (OCR)
+    poppler-utils \
+    # Tesseract for OCR
+    tesseract-ocr \
+    tesseract-ocr-eng \
+    libtesseract-dev \
+    # Java for Tabula
+    default-jre-headless \
+    # Build dependencies
+    gcc \
+    g++ \
+    make \
+    # libmagic for python-magic
+    libmagic1 \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy requirements first (for layer caching)
+COPY requirements.txt .
+
+# Install Python dependencies
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Copy application code
+COPY . .
+
+# Create storage directories with proper permissions
+RUN mkdir -p storage/uploads storage/outputs storage/data storage/folders && \
+    chmod -R 755 storage
+
+# Expose port (Railway will set $PORT dynamically)
+EXPOSE 8000
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
+    CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:8000/api/health').read()" || exit 1
+
+# Run with gunicorn
+CMD gunicorn --bind 0.0.0.0:${PORT:-8000} \
+    --workers 2 \
+    --threads 4 \
+    --timeout 120 \
+    --access-logfile - \
+    --error-logfile - \
+    --log-level info \
+    main:app
