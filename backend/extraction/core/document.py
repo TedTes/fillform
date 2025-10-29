@@ -255,6 +255,33 @@ class Document:
             'errors': self.errors,
             'warnings': self.warnings
         }
+    def classify_as(self, doc_type: DocumentType, confidence: float, classifier_name: str = 'unknown'):
+        """
+        Classify document with confidence and classifier info.
+        
+        Args:
+            doc_type: Document type
+            confidence: Classification confidence (0.0 to 1.0)
+            classifier_name: Name of classifier
+        """
+        self.set_document_type(doc_type, confidence)
+        self.metadata['classifier'] = classifier_name
+        self.metadata['classification_timestamp'] = datetime.utcnow().isoformat()
+    
+    def get_classification_info(self) -> Dict[str, Any]:
+        """
+        Get classification information.
+        
+        Returns:
+            Dictionary with classification details
+        """
+        return {
+            'document_type': self.document_type.value,
+            'confidence': self.confidence,
+            'classifier': self.metadata.get('classifier', 'unknown'),
+            'timestamp': self.metadata.get('classification_timestamp'),
+            'is_classified': self.is_classified()
+        }
     
     def __repr__(self) -> str:
         """String representation."""
