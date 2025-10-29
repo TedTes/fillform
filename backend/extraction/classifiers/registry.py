@@ -25,7 +25,9 @@ class ClassifierRegistry:
         """Register default classifiers."""
         try:
             from .mime_classifier import MimeClassifier
+            from .keyword_classifier import KeywordClassifier
             self.register('mime', MimeClassifier)
+            self.register('keyword', KeywordClassifier)
         except ImportError:
             pass
     
