@@ -7,13 +7,15 @@ import { Eye, Trash2, ChevronDown, ChevronRight, Info } from 'lucide-react'
 import { CompactDocumentBadge } from './extraction/DocumentTypeBadge'
 import { CompactClassificationPreview } from './extraction/ClassificationPreview'
 import type { ClassificationResult } from '@/types/extraction'
+import { FileText } from 'lucide-react'
 interface InputFileCardProps {
   file: InputFile
   onRemove: () => void
   onPreview: () => void
+  onViewExtraction: ()=>void
 }
 
-export default function InputFileCard({ file, onRemove, onPreview }: InputFileCardProps) {
+export default function InputFileCard({ file, onRemove, onPreview,onViewExtraction }: InputFileCardProps) {
   
   const [showDetails, setShowDetails] = useState(false)
   const isProcessing = file.status === 'uploading' || file.status === 'extracting'
@@ -98,6 +100,14 @@ export default function InputFileCard({ file, onRemove, onPreview }: InputFileCa
                 color="blue"
                 onClick={onPreview}
               />
+              {file.status === 'ready' && (
+  <ActionChip
+    icon={<FileText className="w-3.5 h-3.5" />}
+    text="View Data"
+    color="green"
+    onClick={onViewExtraction} 
+  />
+)}
               <ActionChip
                 icon={<Trash2 className="w-3.5 h-3.5" />}
                 text="Delete"

@@ -13,3 +13,7 @@ export {
   CompactClassificationPreview,
   ClassificationList
 } from './ClassificationPreview'
+export {
+  default as ExtractionResults,
+  CompactExtractionResults
+} from './ExtractionResults'
