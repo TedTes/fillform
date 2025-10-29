@@ -1,5 +1,6 @@
 """
 Extraction service - handles file upload, classification, and extraction workflow.
+Uses real extraction pipeline with classifiers and extractors.
 """
 
 import os
@@ -10,9 +11,16 @@ from typing import Dict, List, Optional, Any
 
 from utils.file_utils import allowed_file, get_file_extension
 
+# Import extraction components
+from extraction.core import UniversalFileLoader, Document
+from extraction.classifiers import classifier_registry
+from extraction.extractors import ExtractorFactory
+from extraction.pipeline import ExtractionPipeline
+from extraction import extract_from_file
+
 
 class ExtractionService:
-    """Service for managing extraction workflow."""
+    """Service for managing extraction workflow with real extractors."""
     
     def __init__(self):
         """Initialize extraction service."""
@@ -24,7 +32,23 @@ class ExtractionService:
         os.makedirs(self.uploads_dir, exist_ok=True)
         os.makedirs(self.results_dir, exist_ok=True)
         
-        # In-memory storage (replace with database in production)
+        # Initialize extraction components
+        self.file_loader = UniversalFileLoader()
+        
+        # Create composite classifier with all available classifiers
+        self.classifier = classifier_registry.create_composite(
+            classifier_names=['mime', 'keyword', 'table'],
+            strategy='highest_confidence'
+        )
+        
+        # Create extraction pipeline
+        self.pipeline = ExtractionPipeline(
+            use_classification=True,
+            classification_strategy='highest_confidence',
+            min_classification_confidence=0.6
+        )
+        
+        # In-memory storage (TODO:replace with database in production)
         self.files: Dict[str, Dict[str, Any]] = {}
         self.classifications: Dict[str, Dict[str, Any]] = {}
         self.extractions: Dict[str, Dict[str, Any]] = {}
@@ -90,7 +114,7 @@ class ExtractionService:
     
     def classify_document(self, file_id: str) -> Dict[str, Any]:
         """
-        Classify a document to detect its type.
+        Classify a document using real classifiers.
         
         Args:
             file_id: File ID to classify
@@ -99,7 +123,7 @@ class ExtractionService:
             {
                 "document_type": "acord_126",
                 "confidence": 0.95,
-                "indicators": ["ACORD 126 header", "..."],
+                "indicators": ["ACORD 126 header found", "..."],
                 "classifier_results": [...]
             }
         """
@@ -109,54 +133,67 @@ class ExtractionService:
         
         file_meta = self.files[file_id]
         file_path = file_meta['file_path']
-        filename = file_meta['file_name'].lower()
         
-        # Simple classification logic (expand with real classifiers)
-        document_type = 'unknown'
-        confidence = 0.5
-        indicators = []
-        
-        # Keyword-based classification
-        if 'acord' in filename and '126' in filename:
-            document_type = 'acord_126'
-            confidence = 0.95
-            indicators.append('Filename contains "acord" and "126"')
-        elif 'acord' in filename and '125' in filename:
-            document_type = 'acord_125'
-            confidence = 0.95
-            indicators.append('Filename contains "acord" and "125"')
-        elif 'loss' in filename or 'claim' in filename:
-            document_type = 'loss_run'
-            confidence = 0.85
-            indicators.append('Filename contains "loss" or "claim"')
-        elif 'sov' in filename or 'schedule' in filename:
-            document_type = 'sov'
-            confidence = 0.80
-            indicators.append('Filename contains "sov" or "schedule"')
-        elif 'financial' in filename or 'statement' in filename:
-            document_type = 'financial_statement'
-            confidence = 0.80
-            indicators.append('Filename contains "financial" or "statement"')
-        
-        # Store classification
-        classification = {
-            'document_type': document_type,
-            'confidence': confidence,
-            'indicators': indicators,
-            'classifier_results': [
-                {
-                    'classifier': 'KeywordClassifier',
-                    'document_type': document_type,
-                    'confidence': confidence
-                }
-            ],
-            'classified_at': datetime.utcnow().isoformat()
-        }
-        
-        self.classifications[file_id] = classification
-        self.files[file_id]['status'] = 'classified'
-        
-        return classification
+        try:
+            # Load document
+            document = self.file_loader.load(file_path)
+            
+            # Classify using composite classifier
+            doc_type, confidence = self.classifier.classify(document)
+            
+            # Get detailed classification results
+            classification_details = document.get_classification_info()
+            
+            # Build indicators list
+            indicators = []
+            if hasattr(self.classifier, 'get_indicators'):
+                indicators = self.classifier.get_indicators(document)
+            else:
+                # Fallback indicators
+                indicators.append(f'Document classified as {doc_type.value}')
+                indicators.append(f'Confidence: {confidence:.2%}')
+            
+            # Store classification
+            classification = {
+                'document_type': doc_type.value,
+                'confidence': confidence,
+                'indicators': indicators,
+                'classifier_results': [],
+                'classified_at': datetime.utcnow().isoformat()
+            }
+            
+            # Try to get individual classifier results if available
+            if hasattr(self.classifier, 'classifiers'):
+                for cls in self.classifier.classifiers:
+                    try:
+                        cls_type, cls_conf = cls.classify(document)
+                        classification['classifier_results'].append({
+                            'classifier': cls.__class__.__name__,
+                            'document_type': cls_type.value,
+                            'confidence': cls_conf
+                        })
+                    except:
+                        pass
+            
+            self.classifications[file_id] = classification
+            self.files[file_id]['status'] = 'classified'
+            
+            return classification
+            
+        except Exception as e:
+            # Fallback classification on error
+            classification = {
+                'document_type': 'unknown',
+                'confidence': 0.0,
+                'indicators': [f'Classification failed: {str(e)}'],
+                'classifier_results': [],
+                'classified_at': datetime.utcnow().isoformat()
+            }
+            
+            self.classifications[file_id] = classification
+            self.files[file_id]['status'] = 'classification_failed'
+            
+            return classification
     
     def extract_document(
         self,
@@ -165,7 +202,7 @@ class ExtractionService:
         options: Optional[Dict[str, Any]] = None
     ) -> Dict[str, Any]:
         """
-        Extract data from a document.
+        Extract data from a document using real extractors.
         
         Args:
             file_id: File ID to extract from
@@ -186,47 +223,62 @@ class ExtractionService:
         if file_id not in self.files:
             raise ValueError(f'File not found: {file_id}')
         
-        # Get classification if not provided
-        if not document_type:
-            if file_id in self.classifications:
-                document_type = self.classifications[file_id]['document_type']
-            else:
-                # Auto-classify
-                classification = self.classify_document(file_id)
-                document_type = classification['document_type']
+        file_meta = self.files[file_id]
+        file_path = file_meta['file_path']
         
-        # Mock extraction (replace with real extractors)
-        extracted_data = {
-            'applicant_name': 'John Doe Insurance Company',
-            'policy_number': 'POL-2025-001',
-            'effective_date': '2025-01-01',
-            'expiration_date': '2026-01-01',
-            'premium': 15000.00,
-            'coverage_type': 'Commercial General Liability',
-            'limit': 1000000,
-            'deductible': 5000
-        }
-        
-        # Create result
-        result = {
-            'success': True,
-            'data': extracted_data,
-            'confidence': 0.92,
-            'warnings': [],
-            'errors': [],
-            'metadata': {
-                'extractor_used': 'MockExtractor',
-                'document_type': document_type,
-                'extraction_date': datetime.utcnow().isoformat(),
-                'file_id': file_id
+        try:
+            # Use the extraction pipeline for complete workflow
+            result = self.pipeline.process(file_path)
+            
+            # Convert ExtractionResult to API format
+            extraction_result = {
+                'success': result.success,
+                'data': result.data or {},
+                'confidence': result.confidence,
+                'warnings': result.warnings or [],
+                'errors': result.errors or [],
+                'metadata': {
+                    'extractor_used': result.metadata.get('extractor_used', 'Unknown') if result.metadata else 'Unknown',
+                    'document_type': result.metadata.get('document_type', 'unknown') if result.metadata else 'unknown',
+                    'extraction_date': datetime.utcnow().isoformat(),
+                    'file_id': file_id
+                }
             }
-        }
-        
-        # Store extraction
-        self.extractions[file_id] = result
-        self.files[file_id]['status'] = 'extracted'
-        
-        return result
+            
+            # Add any additional metadata from result
+            if result.metadata:
+                extraction_result['metadata'].update(result.metadata)
+            
+            # Store extraction
+            self.extractions[file_id] = extraction_result
+            
+            if result.success:
+                self.files[file_id]['status'] = 'extracted'
+            else:
+                self.files[file_id]['status'] = 'extraction_failed'
+            
+            return extraction_result
+            
+        except Exception as e:
+            # Return error result
+            error_result = {
+                'success': False,
+                'data': {},
+                'confidence': 0.0,
+                'warnings': [],
+                'errors': [f'Extraction failed: {str(e)}'],
+                'metadata': {
+                    'extractor_used': 'None',
+                    'document_type': document_type or 'unknown',
+                    'extraction_date': datetime.utcnow().isoformat(),
+                    'file_id': file_id
+                }
+            }
+            
+            self.extractions[file_id] = error_result
+            self.files[file_id]['status'] = 'extraction_failed'
+            
+            return error_result
     
     def fuse_documents(
         self,
@@ -235,7 +287,7 @@ class ExtractionService:
         options: Optional[Dict[str, Any]] = None
     ) -> Dict[str, Any]:
         """
-        Fuse data from multiple documents.
+        Fuse data from multiple documents using fusion strategy.
         
         Args:
             file_ids: List of file IDs to fuse
@@ -245,29 +297,63 @@ class ExtractionService:
         Returns:
             Fused extraction result
         """
+        from extraction.strategies import FusionStrategy, DocumentGroup
+        
         # Extract all files if not already extracted
+        documents = []
         extractions = []
+        
         for file_id in file_ids:
             if file_id not in self.extractions:
                 self.extract_document(file_id)
-            extractions.append(self.extractions[file_id])
+            
+            if file_id in self.files:
+                file_path = self.files[file_id]['file_path']
+                try:
+                    doc = self.file_loader.load(file_path)
+                    documents.append(doc)
+                    extractions.append(self.extractions.get(file_id))
+                except:
+                    pass
         
-        # Simple fusion logic (replace with real fusion)
-        fused_data = {}
-        for extraction in extractions:
-            if extraction['success']:
-                fused_data.update(extraction['data'])
-        
-        return {
-            'success': True,
-            'data': {
-                'submission_id': str(uuid.uuid4()),
-                'fused_data': fused_data
-            },
-            'confidence': 0.88,
-            'warnings': [],
-            'errors': []
-        }
+        # Use fusion strategy
+        try:
+            fusion = FusionStrategy()
+            doc_group = DocumentGroup(
+                group_id=group_id or str(uuid.uuid4()),
+                documents=documents
+            )
+            
+            fused_result = fusion.fuse(doc_group)
+            
+            return {
+                'success': fused_result.success,
+                'data': {
+                    'submission_id': doc_group.group_id,
+                    'fused_data': fused_result.data
+                },
+                'confidence': fused_result.confidence,
+                'warnings': fused_result.warnings or [],
+                'errors': fused_result.errors or []
+            }
+            
+        except Exception as e:
+            # Fallback: simple merge
+            fused_data = {}
+            for extraction in extractions:
+                if extraction and extraction.get('success'):
+                    fused_data.update(extraction.get('data', {}))
+            
+            return {
+                'success': True,
+                'data': {
+                    'submission_id': group_id or str(uuid.uuid4()),
+                    'fused_data': fused_data
+                },
+                'confidence': 0.7,
+                'warnings': [f'Used fallback fusion: {str(e)}'],
+                'errors': []
+            }
     
     def get_job_status(self, job_id: str) -> Optional[Dict[str, Any]]:
         """Get async job status."""
@@ -296,31 +382,31 @@ class ExtractionService:
     
     def get_supported_formats(self) -> Dict[str, Any]:
         """Get supported file formats and capabilities."""
+        from extraction.parsers import PARSER_CAPABILITIES
+        from extraction.extractors import extractor_registry
+        from extraction.core import DocumentType
+        
         return {
             'file_types': ['.pdf', '.xlsx', '.xls', '.csv', '.jpg', '.jpeg', '.png', '.tiff', '.docx'],
             'document_types': [
-                {'value': 'acord_125', 'label': 'ACORD 125'},
-                {'value': 'acord_126', 'label': 'ACORD 126'},
-                {'value': 'acord_130', 'label': 'ACORD 130'},
-                {'value': 'acord_140', 'label': 'ACORD 140'},
-                {'value': 'loss_run', 'label': 'Loss Run'},
-                {'value': 'sov', 'label': 'Schedule of Values'},
-                {'value': 'financial_statement', 'label': 'Financial Statement'},
-                {'value': 'supplemental', 'label': 'Supplemental Document'},
-                {'value': 'generic', 'label': 'Generic Document'},
+                {'value': dt.value, 'label': dt.value.replace('_', ' ').title()}
+                for dt in DocumentType
+                if dt != DocumentType.UNKNOWN
             ],
             'extractors': [
                 {
-                    'name': 'Acord126Extractor',
-                    'supported_types': ['acord_126'],
-                    'description': 'Extracts data from ACORD 126 forms'
+                    'name': name,
+                    'supported_types': [dt.value for dt in info.get('supported_types', [])],
+                    'description': info.get('description', '')
                 }
+                for name, info in extractor_registry.get_extractor_info().items()
             ],
             'parsers': [
                 {
-                    'name': 'PDFParser',
-                    'supported_extensions': ['.pdf'],
-                    'description': 'Parses PDF documents'
+                    'name': name,
+                    'supported_extensions': caps.get('file_types', []),
+                    'description': f'Parses {name.replace("Parser", "")} files'
                 }
+                for name, caps in PARSER_CAPABILITIES.items()
             ]
         }
