@@ -32,6 +32,7 @@ from .classifiers import (
     MimeClassifier,
     classifier_registry,
     KeywordClassifier,
+    MLClassifier,
     TableClassifier
 )
 
@@ -68,7 +69,8 @@ __all__ = [
     'MimeClassifier',
     'classifier_registry',
     'TableClassifier',
-    'KeywordClassifier'
+    'KeywordClassifier',
+    'MLClassifier'
 ]
 
 # Version

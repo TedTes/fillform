@@ -12,12 +12,16 @@ from .mime_classifier import MimeClassifier
 from .registry import ClassifierRegistry, classifier_registry
 from .table_classifier import TableClassifier
 from .keyword_classifier import KeywordClassifier
+from .ml_classifier import MLClassifier, LayoutLMClassifier, DonutClassifier
 __all__ = [
     'MimeClassifier',
     'KeywordClassifier',
     'ClassifierRegistry',
     'TableClassifier',
-    'classifier_registry'
+    'classifier_registry',
+    'MLClassifier',  
+    'LayoutLMClassifier', 
+    'DonutClassifier'
 ]
 
 __version__ = '1.0.0'

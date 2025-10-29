@@ -36,6 +36,11 @@ class ClassifierRegistry:
         try:
             from .table_classifier import TableClassifier
             self.register('table', TableClassifier)
+        # ADD THIS (but don't register by default - only when model available):
+        # ML classifiers are not registered by default
+        # Users must manually register when model is available:
+        # from .ml_classifier import MLClassifier
+        # classifier_registry.register('ml', MLClassifier)
     except ImportError:
         pass
     
