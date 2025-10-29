@@ -536,7 +536,7 @@ export async function uploadBatchForExtraction(
   files: Array<{
     file_id: string
     file_name: string
-    classification?: any
+    classification?: string
   }>
   total_files: number
   successful_uploads: number
@@ -615,15 +615,15 @@ export async function extractDocument(
   fileId: string,
   options?: {
     documentType?: string
-    extractionOptions?: Record<string, any>
+    extractionOptions?: Record<string, unknown>
   }
 ): Promise<{
   success: boolean
-  data: Record<string, any>
+  data: Record<string, unknown>
   confidence: number
   warnings?: string[]
   errors?: string[]
-  metadata?: Record<string, any>
+  metadata?: Record<string, unknown>
 }> {
   try {
     const response = await api.post('/extraction/extract', {
@@ -655,7 +655,7 @@ export async function fuseDocuments(request: {
   }
 }): Promise<{
   success: boolean
-  data: Record<string, any>
+  data: Record<string, unknown>
   confidence: number
   warnings?: string[]
   errors?: string[]
@@ -680,7 +680,7 @@ export async function getExtractionJobStatus(jobId: string): Promise<{
   job_id: string
   status: 'pending' | 'processing' | 'completed' | 'failed'
   progress: number
-  result?: any
+  result?: unknown
   error?: string
   created_at: string
   updated_at: string

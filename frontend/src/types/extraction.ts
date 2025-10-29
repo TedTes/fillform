@@ -15,7 +15,7 @@ export interface ClassificationResult {
   
   export interface ExtractionResult {
     success: boolean
-    data: Record<string, any>
+    data: Record<string, unknown>
     confidence: number
     warnings?: string[]
     errors?: string[]
@@ -23,7 +23,7 @@ export interface ClassificationResult {
       extractor_used?: string
       document_type?: string
       extraction_date?: string
-      pipeline?: Record<string, any>
+      pipeline?: Record<string, unknown>
     }
   }
   
@@ -44,13 +44,13 @@ export interface ClassificationResult {
     success: boolean
     data: {
       submission_id: string
-      application?: Record<string, any>
-      claims_history?: Record<string, any>
-      property_schedule?: Record<string, any>
-      financial_information?: Record<string, any>
-      supplemental_documents?: Array<Record<string, any>>
-      applicant?: Record<string, any>
-      fusion_metadata?: Record<string, any>
+      application?: Record<string, unknown>
+      claims_history?: Record<string, unknown>
+      property_schedule?: Record<string, unknown>
+      financial_information?: Record<string, unknown>
+      supplemental_documents?: Array<Record<string, unknown>>
+      applicant?: Record<string, unknown>
+      fusion_metadata?: Record<string, unknown>
     }
     confidence: number
     warnings?: string[]
