@@ -46,6 +46,12 @@ from .classifiers import (
     TableClassifier
 )
 
+from .pipeline import (
+    ExtractionPipeline,
+    SimplePipeline,
+    ExtractionPipelineBuilder,
+    extract_from_file
+)
 __all__ = [
     # Interfaces
     'IExtractor',
@@ -87,7 +93,14 @@ __all__ = [
     'classifier_registry',
     'TableClassifier',
     'KeywordClassifier',
-    'MLClassifier'
+    'MLClassifier',
+
+
+    # Pipeline
+    'ExtractionPipeline',
+    'SimplePipeline',
+    'ExtractionPipelineBuilder',
+    'extract_from_file',
 ]
 
 # Version
