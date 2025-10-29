@@ -3,3 +3,8 @@
  */
 
 export { default as FileUploader } from './FileUploader'
+export { 
+  default as DocumentTypeBadge,
+  CompactDocumentBadge,
+  DocumentBadgeWithStatus 
+} from './DocumentTypeBadge'

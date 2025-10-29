@@ -3,6 +3,7 @@
 import { InputFile } from '@/types/folder'
 import LoadingSpinner from './LoadingSpinner'
 import { Eye, Trash2 } from 'lucide-react'
+import { CompactDocumentBadge } from './extraction/DocumentTypeBadge'
 
 interface InputFileCardProps {
   file: InputFile
@@ -47,13 +48,24 @@ export default function InputFileCard({ file, onRemove, onPreview }: InputFileCa
 
         {/* File Info */}
         <div className="flex-1 min-w-0">
-          <p className="text-sm font-semibold text-gray-900 truncate group-hover:text-gray-900 transition-colors">
-            {file.filename}
-          </p>
+          {/* Filename with Document Type Badge */}
+          <div className="flex items-center gap-2 mb-2">
+            <p className="text-sm font-semibold text-gray-900 truncate group-hover:text-gray-900 transition-colors">
+              {file.filename}
+            </p>
+            
+            {/* Document Type Badge - only show if classification exists */}
+            {file.confidence !== undefined && file.confidence > 0 && (
+              <CompactDocumentBadge 
+                documentType={getDocumentTypeFromFile(file)}
+                confidence={file.confidence}
+              />
+            )}
+          </div>
 
-          {/* Action Buttons */}
-          {!isProcessing && (
-            <div className="flex items-center gap-2 mt-2 flex-wrap">
+          {/* Action Buttons or Processing State */}
+          {!isProcessing ? (
+            <div className="flex items-center gap-2 flex-wrap">
               <ActionChip
                 icon={<Eye className="w-3.5 h-3.5" />}
                 text="Preview"
@@ -66,11 +78,16 @@ export default function InputFileCard({ file, onRemove, onPreview }: InputFileCa
                 color="red"
                 onClick={onRemove}
               />
+              
+              {/* Show confidence as text if available */}
+              {file.confidence !== undefined && file.confidence > 0 && (
+                <span className="text-xs text-gray-500">
+                  {Math.round(file.confidence * 100)}% confidence
+                </span>
+              )}
             </div>
-          )}
-
-          {isProcessing && (
-            <p className="text-xs text-blue-600 font-medium mt-2">Processing...</p>
+          ) : (
+            <p className="text-xs text-blue-600 font-medium">Processing...</p>
           )}
         </div>
       </div>
@@ -78,7 +95,29 @@ export default function InputFileCard({ file, onRemove, onPreview }: InputFileCa
   )
 }
 
-/** Small rounded “chip” style action button */
+/**
+ * Helper: Infer document type from InputFile
+ * This maps the file status/name to a document type for the badge
+ */
+function getDocumentTypeFromFile(file: InputFile): string {
+  //TODO:  If we have explicit document type from backend, use it
+
+  const filename = file.filename.toLowerCase()
+  
+  if (filename.includes('acord') && filename.includes('126')) return 'acord_126'
+  if (filename.includes('acord') && filename.includes('125')) return 'acord_125'
+  if (filename.includes('acord') && filename.includes('130')) return 'acord_130'
+  if (filename.includes('acord') && filename.includes('140')) return 'acord_140'
+  if (filename.includes('loss') || filename.includes('claim')) return 'loss_run'
+  if (filename.includes('sov') || filename.includes('schedule')) return 'sov'
+  if (filename.includes('financial') || filename.includes('statement')) return 'financial_statement'
+  if (filename.includes('supplement')) return 'supplemental'
+  
+  // Default to generic for PDFs, unknown for others
+  return filename.endsWith('.pdf') ? 'generic' : 'unknown'
+}
+
+/** Small rounded "chip" style action button */
 function ActionChip({
   icon,
   text,
@@ -99,7 +138,7 @@ function ActionChip({
   return (
     <button
       onClick={onClick}
-      className={`inline-flex items-center gap-1.5 text-[9.5px] font-small px-0.8 py-0.7 rounded-md  transition-colors ${base}`}
+      className={`inline-flex items-center gap-1.5 text-[9.5px] font-medium px-2 py-1 rounded-md transition-colors ${base}`}
     >
       {icon}
       {text}
