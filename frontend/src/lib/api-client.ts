@@ -455,3 +455,363 @@ export function getInputPreviewUrl(submissionId: string): string {
 export function getOutputPreviewUrl(submissionId: string): string {
   return `${API_BASE_URL}/api/submissions/${submissionId}/preview-output`
 }
+
+// ========================================
+// EXTRACTION OPERATIONS
+// ========================================
+
+/**
+ * Upload file for extraction (generic - not just ACORD)
+ */
+export async function uploadFileForExtraction(
+  file: File,
+  options?: {
+    autoClassify?: boolean
+    autoExtract?: boolean
+    folderId?: string
+  },
+  onProgress?: (progress: number) => void
+): Promise<{
+  file_id: string
+  file_name: string
+  file_size: number
+  mime_type: string
+  classification?: {
+    document_type: string
+    confidence: number
+    indicators: string[]
+  }
+}> {
+  try {
+    const formData = new FormData()
+    formData.append('file', file)
+    
+    if (options?.autoClassify !== undefined) {
+      formData.append('auto_classify', options.autoClassify.toString())
+    }
+    if (options?.autoExtract !== undefined) {
+      formData.append('auto_extract', options.autoExtract.toString())
+    }
+    if (options?.folderId) {
+      formData.append('folder_id', options.folderId)
+    }
+
+    const response = await api.post(
+      '/extraction/upload',
+      formData,
+      {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+        onUploadProgress: (progressEvent) => {
+          if (onProgress && progressEvent.total) {
+            const progress = Math.round((progressEvent.loaded * 100) / progressEvent.total)
+            onProgress(progress)
+          }
+        },
+      }
+    )
+
+    if (!response.data.success) {
+      throw new Error(response.data.error || 'Upload failed')
+    }
+
+    return response.data.data
+  } catch (error) {
+    handleApiError(error)
+  }
+}
+
+/**
+ * Upload multiple files for extraction (batch)
+ */
+export async function uploadBatchForExtraction(
+  files: File[],
+  options?: {
+    autoClassify?: boolean
+    groupId?: string
+  },
+  onProgress?: (progress: number) => void
+): Promise<{
+  files: Array<{
+    file_id: string
+    file_name: string
+    classification?: any
+  }>
+  total_files: number
+  successful_uploads: number
+  failed_uploads: number
+}> {
+  try {
+    const formData = new FormData()
+    
+    files.forEach((file) => {
+      formData.append('files', file)
+    })
+    
+    if (options?.autoClassify !== undefined) {
+      formData.append('auto_classify', options.autoClassify.toString())
+    }
+    if (options?.groupId) {
+      formData.append('group_id', options.groupId)
+    }
+
+    const response = await api.post(
+      '/extraction/upload-batch',
+      formData,
+      {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+        onUploadProgress: (progressEvent) => {
+          if (onProgress && progressEvent.total) {
+            const progress = Math.round((progressEvent.loaded * 100) / progressEvent.total)
+            onProgress(progress)
+          }
+        },
+      }
+    )
+
+    if (!response.data.success) {
+      throw new Error(response.data.error || 'Batch upload failed')
+    }
+
+    return response.data.data
+  } catch (error) {
+    handleApiError(error)
+  }
+}
+
+/**
+ * Classify a document (detect document type)
+ */
+export async function classifyDocument(fileId: string): Promise<{
+  document_type: string
+  confidence: number
+  indicators: string[]
+  classifier_results?: Array<{
+    classifier: string
+    document_type: string
+    confidence: number
+  }>
+}> {
+  try {
+    const response = await api.post('/extraction/classify', { file_id: fileId })
+
+    if (!response.data.success) {
+      throw new Error(response.data.error || 'Classification failed')
+    }
+
+    return response.data.data
+  } catch (error) {
+    handleApiError(error)
+  }
+}
+
+/**
+ * Extract data from a document
+ */
+export async function extractDocument(
+  fileId: string,
+  options?: {
+    documentType?: string
+    extractionOptions?: Record<string, any>
+  }
+): Promise<{
+  success: boolean
+  data: Record<string, any>
+  confidence: number
+  warnings?: string[]
+  errors?: string[]
+  metadata?: Record<string, any>
+}> {
+  try {
+    const response = await api.post('/extraction/extract', {
+      file_id: fileId,
+      document_type: options?.documentType,
+      extraction_options: options?.extractionOptions,
+    })
+
+    if (!response.data.success) {
+      throw new Error(response.data.error || 'Extraction failed')
+    }
+
+    return response.data.data
+  } catch (error) {
+    handleApiError(error)
+  }
+}
+
+/**
+ * Fuse multiple documents into unified submission
+ */
+export async function fuseDocuments(request: {
+  group_id: string
+  file_ids: string[]
+  options?: {
+    enable_cross_validation?: boolean
+    conflict_resolution?: 'highest_confidence' | 'most_recent' | 'primary_source'
+    include_source_tracking?: boolean
+  }
+}): Promise<{
+  success: boolean
+  data: Record<string, any>
+  confidence: number
+  warnings?: string[]
+  errors?: string[]
+}> {
+  try {
+    const response = await api.post('/extraction/fuse', request)
+
+    if (!response.data.success) {
+      throw new Error(response.data.error || 'Fusion failed')
+    }
+
+    return response.data.data
+  } catch (error) {
+    handleApiError(error)
+  }
+}
+
+/**
+ * Get extraction job status (for async processing)
+ */
+export async function getExtractionJobStatus(jobId: string): Promise<{
+  job_id: string
+  status: 'pending' | 'processing' | 'completed' | 'failed'
+  progress: number
+  result?: any
+  error?: string
+  created_at: string
+  updated_at: string
+}> {
+  try {
+    const response = await api.get(`/extraction/jobs/${jobId}`)
+
+    if (!response.data.success) {
+      throw new Error(response.data.error || 'Failed to get job status')
+    }
+
+    return response.data.data
+  } catch (error) {
+    handleApiError(error)
+  }
+}
+
+/**
+ * Get extraction diagnostics
+ */
+export async function getExtractionDiagnostics(extractionId: string): Promise<{
+  extraction_id: string
+  document_name: string
+  extraction_attempts: Array<{
+    parser: string
+    success: boolean
+    confidence: number
+    timestamp: string
+    error?: string
+  }>
+  field_confidence: Record<string, number>
+  overall_confidence: number
+  processing_time_ms: number
+}> {
+  try {
+    const response = await api.get(`/extraction/${extractionId}/diagnostics`)
+
+    if (!response.data.success) {
+      throw new Error(response.data.error || 'Failed to get diagnostics')
+    }
+
+    return response.data.data
+  } catch (error) {
+    handleApiError(error)
+  }
+}
+
+/**
+ * Get supported file formats and extraction capabilities
+ */
+export async function getSupportedFormats(): Promise<{
+  file_types: string[]
+  document_types: Array<{
+    value: string
+    label: string
+  }>
+  extractors: Array<{
+    name: string
+    supported_types: string[]
+    description: string
+  }>
+  parsers: Array<{
+    name: string
+    supported_extensions: string[]
+    description: string
+  }>
+}> {
+  try {
+    const response = await api.get('/extraction/formats')
+
+    if (!response.data.success) {
+      throw new Error(response.data.error || 'Failed to get formats')
+    }
+
+    return response.data.data
+  } catch (error) {
+    handleApiError(error)
+  }
+}
+
+/**
+ * Download extraction result as JSON
+ */
+export async function downloadExtractionResult(
+  extractionId: string,
+  filename?: string
+): Promise<void> {
+  try {
+    const response = await api.get(`/extraction/${extractionId}/download`, {
+      responseType: 'blob',
+    })
+
+    const url = window.URL.createObjectURL(new Blob([response.data]))
+    const link = document.createElement('a')
+    link.href = url
+    link.setAttribute('download', filename || `extraction_${extractionId}.json`)
+    document.body.appendChild(link)
+    link.click()
+    link.remove()
+    window.URL.revokeObjectURL(url)
+  } catch (error) {
+    handleApiError(error)
+  }
+}
+
+/**
+ * Delete uploaded extraction file
+ */
+export async function deleteExtractionFile(fileId: string): Promise<void> {
+  try {
+    const response = await api.delete(`/extraction/files/${fileId}`)
+
+    if (!response.data.success) {
+      throw new Error(response.data.error || 'Failed to delete file')
+    }
+  } catch (error) {
+    handleApiError(error)
+  }
+}
+
+/**
+ * Cancel extraction job
+ */
+export async function cancelExtractionJob(jobId: string): Promise<void> {
+  try {
+    const response = await api.post(`/extraction/jobs/${jobId}/cancel`)
+
+    if (!response.data.success) {
+      throw new Error(response.data.error || 'Failed to cancel job')
+    }
+  } catch (error) {
+    handleApiError(error)
+  }
+}

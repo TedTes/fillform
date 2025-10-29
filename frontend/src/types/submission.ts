@@ -20,8 +20,8 @@ export interface FillReport {
   downloadUrl: string
 }
 
-export interface ExtractionResult {
-  confidence: number
-  warnings: string[]
-  data: unknown
-}
+// export interface ExtractionResult {
+//   confidence: number
+//   warnings: string[]
+//   data: unknown
+// }
