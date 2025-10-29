@@ -9,6 +9,7 @@ interface InputFilesSectionProps {
   onUpload: () => void
   onRemove: (fileId: string) => void
   onPreview: (fileId: string) => void
+  onViewExtraction?: (fileId: string) => void
 }
 
 export default function InputFilesSection({
@@ -16,6 +17,7 @@ export default function InputFilesSection({
   onUpload,
   onRemove,
   onPreview,
+  onViewExtraction,
 }: InputFilesSectionProps) {
   return (
     <section className="mb-6">
@@ -50,6 +52,7 @@ export default function InputFilesSection({
               file={file}
               onRemove={() => onRemove(file.id)}
               onPreview={() => onPreview(file.id)}
+              onViewExtraction={onViewExtraction ? () => onViewExtraction(file.id) : undefined}
             />
           ))}
         </div>

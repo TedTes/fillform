@@ -12,7 +12,7 @@ interface InputFileCardProps {
   file: InputFile
   onRemove: () => void
   onPreview: () => void
-  onViewExtraction: ()=>void
+  onViewExtraction?: ()=>void
 }
 
 export default function InputFileCard({ file, onRemove, onPreview,onViewExtraction }: InputFileCardProps) {
@@ -100,7 +100,7 @@ export default function InputFileCard({ file, onRemove, onPreview,onViewExtracti
                 color="blue"
                 onClick={onPreview}
               />
-              {file.status === 'ready' && (
+              {file.status === 'ready' && onViewExtraction &&  (
   <ActionChip
     icon={<FileText className="w-3.5 h-3.5" />}
     text="View Data"

@@ -208,7 +208,16 @@ export default function Home() {
       toast.error('Failed to rename folder')
     }
   }
-
+  const handleViewExtraction = (fileId: string) => {
+    const file = inputFiles.find(f => f.id === fileId)
+    if (!file) return
+    
+    // TODO: Show extraction results modal
+    toast.info(`Viewing extraction for ${file.filename}`)
+    // For now, just show a toast. Later you can:
+    // 1. Fetch extraction data from backend
+    // 2. Show ExtractionResultsModal
+  }
   const handleDelete = async (folderId: string) => {
     const prev = folders
     const next = prev.filter((f) => f.folder_id !== folderId)
@@ -543,12 +552,23 @@ export default function Home() {
           <div className="p-6 lg:p-8 max-w-6xl mx-auto">
             {/* Folder Header */}
    
-              <div className = "className=mb-8 pb-5 ">
-                <h3 className="text-1xl  text-gray-800">{activeFolder.name}</h3>
-                <p className="text-sm text-gray-500 mt-1">
-                  {activeFolderInputs.length} input • {activeFolderOutputs.length} output
-                </p>
-              </div>
+            <div className="flex items-center justify-between mb-6">
+  <div>
+    <h3 className="text-xl text-gray-800">{activeFolder?.name}</h3>
+    <p className="text-sm text-gray-500 mt-1">
+      {activeFolderInputs.length} input • {activeFolderOutputs.length} output
+    </p>
+  </div>
+  
+  {/* ADD THIS BUTTON */}
+  <button
+    onClick={() => router.push('/extraction')}
+    className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white text-sm font-medium rounded-lg shadow-sm transition-all"
+  >
+    <UpIcon className="w-4 h-4" />
+    Advanced Extraction
+  </button>
+</div>
       
 
             {/* Input Files */}
@@ -557,6 +577,7 @@ export default function Home() {
   onUpload={handleUploadFiles}
   onRemove={handleRemoveFile}
   onPreview={handlePreviewInput}
+  onViewExtraction={handleViewExtraction}
 />
 {/* Toolbar under uploaded files */}
 <div className="mt-4 mb-6 flex flex-col sm:flex-row sm:items-center gap-2">
