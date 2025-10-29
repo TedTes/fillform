@@ -2,6 +2,8 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { BatchExtractionPanel } from '@/components/extraction'
+import { extractBatchDocuments } from '@/lib/api-client'
 import { ArrowLeft, Upload, FileCheck, Download } from 'lucide-react'
 import { 
   FileUploader,
@@ -293,6 +295,85 @@ export default function ExtractionPage() {
     return 'upcoming'
   }
 
+  // Handle batch extraction
+  const handleBatchExtract = async (fileIds: string[]) => {
+    try {
+      setIsProcessing(true)
+      toast.info(`Extracting ${fileIds.length} files...`)
+  
+      // Prepare batch requests
+      const requests = fileIds.map(fileId => {
+        const file = uploadedFiles.find(f => f.id === fileId)
+        return {
+          file_id: fileId,
+          document_type: file?.classification?.document_type,
+        }
+      })
+  
+      // Update status to extracting
+      setUploadedFiles(prev =>
+        prev.map(f =>
+          fileIds.includes(f.id)
+            ? { ...f, status: 'extracting' as const }
+            : f
+        )
+      )
+  
+      // Execute batch extraction
+      const results = await extractBatchDocuments(requests)
+  
+      // Update files with results
+      setUploadedFiles(prev =>
+        prev.map(file => {
+          const result = results.find(r => r.file_id === file.id)
+          if (result) {
+            if (result.success && result.data) {
+              return {
+                ...file,
+                extractionResult: {
+                  success: true,
+                  data: result.data,
+                  confidence: result.confidence || 0,
+                },
+                status: 'extracted' as const,
+              }
+            } else {
+              return {
+                ...file,
+                status: 'error' as const,
+                error: result.error || 'Extraction failed',
+              }
+            }
+          }
+          return file
+        })
+      )
+  
+      const successCount = results.filter(r => r.success).length
+      const failCount = results.length - successCount
+  
+      if (successCount > 0) {
+        toast.success(`${successCount} file${successCount !== 1 ? 's' : ''} extracted successfully`)
+      }
+      if (failCount > 0) {
+        toast.error(`${failCount} file${failCount !== 1 ? 's' : ''} failed`)
+      }
+  
+      setCurrentStep('review')
+    } catch (error) {
+      toast.error('Batch extraction failed')
+    } finally {
+      setIsProcessing(false)
+    }
+  }
+
+  // Handle retry single file
+const handleRetryExtraction = async (fileId: string) => {
+  const file = uploadedFiles.find(f => f.id === fileId)
+  if (!file) return
+
+  await handleExtractFile(file)
+}
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
@@ -421,7 +502,17 @@ export default function ExtractionPage() {
           </div>
         )}
       </main>
-
+{/* Batch Extraction Panel */}
+{uploadedFiles.length > 0 && (
+  <div className="mt-8">
+    <BatchExtractionPanel
+      files={uploadedFiles}
+      onExtractBatch={handleBatchExtract}
+      onRetry={handleRetryExtraction}
+      isProcessing={isProcessing}
+    />
+  </div>
+)}
       {/* Modals */}
       {classificationModal.file && classificationModal.file.classification && (
         <ClassificationModal

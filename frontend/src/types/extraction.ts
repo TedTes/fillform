@@ -73,3 +73,35 @@ export interface ClassificationResult {
     icon?: string
     color?: string
   }
+
+
+export interface BatchExtractionRequest {
+  file_id: string
+  document_type?: string
+  extraction_options?: Record<string, unknown>
+}
+
+export interface BatchExtractionResult {
+  file_id: string
+  success: boolean
+  data?: Record<string, unknown>
+  confidence?: number
+  error?: string
+  warnings?: string[]
+}
+
+export interface BatchExtractionStatus {
+  batch_id: string
+  status: 'pending' | 'processing' | 'completed' | 'failed'
+  total_files: number
+  completed: number
+  failed: number
+  progress: number
+  results: Array<{
+    file_id: string
+    status: string
+    error?: string
+  }>
+  created_at: string
+  updated_at: string
+}

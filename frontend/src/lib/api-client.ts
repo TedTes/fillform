@@ -815,3 +815,89 @@ export async function cancelExtractionJob(jobId: string): Promise<void> {
     handleApiError(error)
   }
 }
+
+/**
+ * Extract multiple documents in batch
+ */
+export async function extractBatchDocuments(
+  requests: Array<{
+    file_id: string
+    document_type?: string
+    extraction_options?: Record<string, unknown>
+  }>
+): Promise<Array<{
+  file_id: string
+  success: boolean
+  data?: Record<string, unknown>
+  confidence?: number
+  error?: string
+}>> {
+  try {
+    const response = await api.post('/extraction/batch-extract', {
+      requests,
+    })
+
+    if (!response.data.success) {
+      throw new Error(response.data.error || 'Batch extraction failed')
+    }
+
+    return response.data.results
+  } catch (error) {
+    handleApiError(error)
+  }
+}
+
+/**
+ * Get batch extraction job status
+ */
+export async function getBatchExtractionStatus(
+  batchId: string
+): Promise<{
+  batch_id: string
+  status: 'pending' | 'processing' | 'completed' | 'failed'
+  total_files: number
+  completed: number
+  failed: number
+  results: Array<{
+    file_id: string
+    status: string
+    error?: string
+  }>
+}> {
+  try {
+    const response = await api.get(`/extraction/batch/${batchId}`)
+
+    if (!response.data.success) {
+      throw new Error(response.data.error || 'Failed to get batch status')
+    }
+
+    return response.data.data
+  } catch (error) {
+    handleApiError(error)
+  }
+}
+
+/**
+ * Download batch extraction results as ZIP
+ */
+export async function downloadBatchResults(
+  batchId: string,
+  filename?: string
+): Promise<void> {
+  try {
+    const response = await api.get(`/extraction/batch/${batchId}/download`, {
+      responseType: 'blob',
+    })
+
+    const url = window.URL.createObjectURL(new Blob([response.data]))
+    const link = document.createElement('a')
+    link.href = url
+    link.setAttribute('download', filename || `batch_extraction_${batchId}.zip`)
+    document.body.appendChild(link)
+    link.click()
+    link.remove()
+    window.URL.revokeObjectURL(url)
+  } catch (error) {
+    handleApiError(error)
+  }
+}

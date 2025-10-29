@@ -17,3 +17,4 @@ export {
   default as ExtractionResults,
   CompactExtractionResults
 } from './ExtractionResults'
+export { default as BatchExtractionPanel } from './BatchExtractionPanel'
