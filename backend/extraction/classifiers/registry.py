@@ -25,11 +25,19 @@ class ClassifierRegistry:
         """Register default classifiers."""
         try:
             from .mime_classifier import MimeClassifier
-            from .keyword_classifier import KeywordClassifier
             self.register('mime', MimeClassifier)
+        except ImportError:
+            pass
+        try:
+            from .keyword_classifier import KeywordClassifier
             self.register('keyword', KeywordClassifier)
         except ImportError:
             pass
+        try:
+            from .table_classifier import TableClassifier
+            self.register('table', TableClassifier)
+    except ImportError:
+        pass
     
     def register(self, name: str, classifier_class: Type[IClassifier]):
         """

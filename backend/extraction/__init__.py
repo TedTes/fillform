@@ -31,7 +31,8 @@ from .parsers import (
 from .classifiers import (
     MimeClassifier,
     classifier_registry,
-    KeywordClassifier
+    KeywordClassifier,
+    TableClassifier
 )
 
 __all__ = [
@@ -66,6 +67,7 @@ __all__ = [
     # Classifiers
     'MimeClassifier',
     'classifier_registry',
+    'TableClassifier',
     'KeywordClassifier'
 ]
 

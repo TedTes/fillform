@@ -10,11 +10,13 @@ Classifiers analyze document content to determine type:
 
 from .mime_classifier import MimeClassifier
 from .registry import ClassifierRegistry, classifier_registry
+from .table_classifier import TableClassifier
 from .keyword_classifier import KeywordClassifier
 __all__ = [
     'MimeClassifier',
     'KeywordClassifier',
     'ClassifierRegistry',
+    'TableClassifier',
     'classifier_registry'
 ]
 
