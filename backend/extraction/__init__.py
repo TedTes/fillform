@@ -15,7 +15,7 @@ from .interfaces.parser import IParser
 from .interfaces.mapper import IMapper
 from .interfaces.classifier import IClassifier, ClassificationResult, CompositeClassifier
 from .models.extraction_result import ExtractionResult
-from .extractors import Acord126Extractor
+from .extractors import Acord126Extractor,LossRunExtractor
 from .parsers import (
     PdfFieldParser,
     OcrParser,
@@ -50,7 +50,7 @@ __all__ = [
     
     # Extractors
     'Acord126Extractor',
-    
+    'LossRunExtractor',
     # Parsers
     'PdfFieldParser',
     'OcrParser',
