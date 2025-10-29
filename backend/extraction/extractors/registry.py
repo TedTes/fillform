@@ -61,6 +61,24 @@ class ExtractorRegistry:
             self.register(DocumentType.UNKNOWN, GenericExtractor)
         except ImportError:
             pass
+
+        try:
+            from .acord_125_extractor import Acord125Extractor
+            self.register(DocumentType.ACORD_125, Acord125Extractor)
+        except ImportError:
+            pass
+    
+        try:
+            from .acord_130_extractor import Acord130Extractor
+            self.register(DocumentType.ACORD_130, Acord130Extractor)
+        except ImportError:
+            pass
+    
+        try:
+            from .acord_140_extractor import Acord140Extractor
+            self.register(DocumentType.ACORD_140, Acord140Extractor)
+        except ImportError:
+            pass
     
     def register(self, document_type: DocumentType, extractor_class: Type[IExtractor]):
         """

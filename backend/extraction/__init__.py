@@ -17,6 +17,9 @@ from .interfaces.classifier import IClassifier, ClassificationResult, CompositeC
 from .models.extraction_result import ExtractionResult
 from .extractors import ( 
     Acord126Extractor,
+    Acord125Extractor,
+    Acord130Extractor,
+    Acord140Extractor,
     LossRunExtractor,
     SovExtractor,
     FinancialStatementExtractor,
@@ -66,6 +69,9 @@ __all__ = [
     
     # Extractors
     'Acord126Extractor',
+    'Acord125Extractor',
+    'Acord130Extractor',
+    'Acord140Extractor',
     'LossRunExtractor',
     'SovExtractor',
     'FinancialStatementExtractor',
