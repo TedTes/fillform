@@ -1,10 +1,12 @@
 'use client'
 
+import { useState } from 'react'
 import { InputFile } from '@/types/folder'
 import LoadingSpinner from './LoadingSpinner'
-import { Eye, Trash2 } from 'lucide-react'
+import { Eye, Trash2, ChevronDown, ChevronRight, Info } from 'lucide-react'
 import { CompactDocumentBadge } from './extraction/DocumentTypeBadge'
-
+import { CompactClassificationPreview } from './extraction/ClassificationPreview'
+import type { ClassificationResult } from '@/types/extraction'
 interface InputFileCardProps {
   file: InputFile
   onRemove: () => void
@@ -12,7 +14,16 @@ interface InputFileCardProps {
 }
 
 export default function InputFileCard({ file, onRemove, onPreview }: InputFileCardProps) {
+  
+  const [showDetails, setShowDetails] = useState(false)
   const isProcessing = file.status === 'uploading' || file.status === 'extracting'
+  const classification: ClassificationResult | null = file.document_type && file.confidence
+  ? {
+      document_type: file.document_type,
+      confidence: file.confidence,
+      indicators: [],
+    }
+  : null
 
   return (
     <div className="group bg-white border-2 border-gray-100 rounded-xl p-4 hover:shadow-md hover:border-blue-100 transition-all duration-200">
@@ -50,16 +61,31 @@ export default function InputFileCard({ file, onRemove, onPreview }: InputFileCa
         <div className="flex-1 min-w-0">
           {/* Filename with Document Type Badge */}
           <div className="flex items-center gap-2 mb-2">
-            <p className="text-sm font-semibold text-gray-900 truncate group-hover:text-gray-900 transition-colors">
+            <p className="text-sm font-semibold text-gray-900 truncate">
               {file.filename}
             </p>
             
-            {/* Document Type Badge - only show if classification exists */}
-            {file.confidence !== undefined && file.confidence > 0 && (
+            {/* Document Type Badge */}
+            {file.document_type && file.confidence !== undefined && file.confidence > 0 && (
               <CompactDocumentBadge 
-                documentType={getDocumentTypeFromFile(file)}
+                documentType={file.document_type}
                 confidence={file.confidence}
               />
+            )}
+
+            {/* Show Details Button */}
+            {classification && !isProcessing && (
+              <button
+                onClick={() => setShowDetails(!showDetails)}
+                className="ml-auto p-1 text-gray-400 hover:text-gray-600 rounded-md hover:bg-gray-100 transition-colors"
+                title="Show classification details"
+              >
+                {showDetails ? (
+                  <ChevronDown className="w-4 h-4" />
+                ) : (
+                  <ChevronRight className="w-4 h-4" />
+                )}
+              </button>
             )}
           </div>
 
@@ -91,6 +117,12 @@ export default function InputFileCard({ file, onRemove, onPreview }: InputFileCa
           )}
         </div>
       </div>
+        {/* Expandable Classification Details */}
+        {showDetails && classification && (
+        <div className="mt-4 pt-4 border-t border-gray-200">
+          <CompactClassificationPreview classification={classification} />
+        </div>
+      )}
     </div>
   )
 }

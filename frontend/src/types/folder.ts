@@ -30,6 +30,7 @@ export interface Folder {
     status: 'uploading' | 'uploaded' | 'extracting' | 'ready' | 'error' | 'filled'
     uploadedAt: string
     confidence?: number
+    document_type?: string
   }
   
   export interface OutputFile {

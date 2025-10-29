@@ -8,3 +8,8 @@ export {
   CompactDocumentBadge,
   DocumentBadgeWithStatus 
 } from './DocumentTypeBadge'
+export {
+  default as ClassificationPreview,
+  CompactClassificationPreview,
+  ClassificationList
+} from './ClassificationPreview'

@@ -5,6 +5,8 @@ import { Upload as UpIcon, Download as DownIcon } from 'lucide-react'
 
 import { useRouter } from 'next/navigation'
 import type { Folder, InputFile, OutputFile } from '@/types'
+import type { ClassificationResult } from '@/types/extraction'
+import ClassificationModal from '@/components/ClassificationModal'
 import FolderPanel from '@/components/FolderPanel'
 import InputFilesSection from '@/components/InputFilesSection'
 import OutputFilesSection from '@/components/OutputFilesSection'
@@ -23,6 +25,7 @@ import {
 
   deleteFolder as apiDeleteFolder,
   renameFolder as apiRenameFolder,
+  classifyDocument,
 } from '@/lib/api-client'
 
 export default function Home() {
@@ -38,6 +41,17 @@ export default function Home() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
 
+  const [classificationModal, setClassificationModal] = useState<{
+    isOpen: boolean
+    filename: string
+    fileId: string
+    classification: ClassificationResult | null
+  }>({
+    isOpen: false,
+    filename: '',
+    fileId: '',
+    classification: null,
+  })
   // Derived 
   const activeFolderId = activeFolder?.folder_id
   const activeFolderInputs = inputFiles.filter((f) => f.folder_id === activeFolderId)
@@ -240,6 +254,7 @@ export default function Home() {
 
       for (const file of files) {
         try {
+          // Create temp entry
           const temp: InputFile = {
             id: `temp-${Date.now()}-${Math.random()}`,
             folder_id: activeFolderId,
@@ -250,8 +265,10 @@ export default function Home() {
           }
           setInputFiles((prev) => [...prev, temp])
 
+          // Upload with auto-classify
           const result = await uploadPdfToFolder(activeFolderId, file)
 
+          // Update file status
           setInputFiles((prev) =>
             prev.map((f) =>
               f.id === temp.id
@@ -264,6 +281,25 @@ export default function Home() {
                 : f
             )
           )
+
+         
+          if (result.submission_id) {
+            try {
+              const classification = await classifyDocument(result.submission_id)
+              
+              // Show classification modal
+              setClassificationModal({
+                isOpen: true,
+                filename: file.name,
+                fileId: result.submission_id,
+                classification,
+              })
+            } catch (err) {
+              console.warn('Classification failed:', err)
+              // Continue without classification
+            }
+          }
+
         } catch (err) {
           console.error('Upload failed:', err)
           toast.error(`Failed to upload ${file.name}`)
@@ -278,6 +314,40 @@ export default function Home() {
     input.click()
   }
 
+  const handleConfirmClassification = () => {
+    const { fileId, classification } = classificationModal
+    
+    // Update file with classification data
+    setInputFiles((prev) =>
+      prev.map((f) =>
+        f.id === fileId
+          ? {
+              ...f,
+              document_type: classification?.document_type,
+              confidence: classification?.confidence,
+            }
+          : f
+      )
+    )
+
+    toast.success('Classification confirmed')
+  }
+  const handleRejectClassification = () => {
+    const { fileId, filename } = classificationModal
+    
+    toast.warning(`Classification rejected for ${filename}`)
+    
+    // Optionally: mark file for manual classification
+    // or trigger re-classification
+  }
+  const handleCloseClassificationModal = () => {
+    setClassificationModal({
+      isOpen: false,
+      filename: '',
+      fileId: '',
+      classification: null,
+    })
+  }
   // ---------- Input file actions ----------
   const handleRemoveFile = async (fileId: string) => {
     const file = inputFiles.find((f) => f.id === fileId)
@@ -537,6 +607,17 @@ export default function Home() {
         onGenerate={handleGenerate}
       />
 
+        {/*  Classification Modal */}
+        {classificationModal.classification && (
+        <ClassificationModal
+          isOpen={classificationModal.isOpen}
+          onClose={handleCloseClassificationModal}
+          filename={classificationModal.filename}
+          classification={classificationModal.classification}
+          onConfirm={handleConfirmClassification}
+          onReject={handleRejectClassification}
+        />
+      )}
       {previewFile && (
         <PdfPreviewModal
           isOpen={!!previewFile}
