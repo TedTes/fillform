@@ -2,14 +2,19 @@
 Document classifiers for content-based type detection.
 
 Classifiers analyze document content to determine type:
-- MIME-based: Uses file type metadata
-- Keyword-based: Searches for document type indicators
-- Table-based: Analyzes table structure
-- ML-based: Uses machine learning (future)
+- MimeClassifier: Fast initial classification based on file type
+- KeywordClassifier: Searches for document type indicators (next commit)
+- TableClassifier: Analyzes table structure (next commit)
+- MLClassifier: Uses machine learning (future)
 """
 
+from .mime_classifier import MimeClassifier
+from .registry import ClassifierRegistry, classifier_registry
 
-
-__all__ = []
+__all__ = [
+    'MimeClassifier',
+    'ClassifierRegistry',
+    'classifier_registry'
+]
 
 __version__ = '1.0.0'
