@@ -15,6 +15,7 @@ from .interfaces.parser import IParser
 from .interfaces.mapper import IMapper
 from .interfaces.classifier import IClassifier, ClassificationResult, CompositeClassifier
 from .models.extraction_result import ExtractionResult
+from .strategies import FusionStrategy, DocumentGroup
 from .extractors import ( 
     Acord126Extractor,
     Acord125Extractor,
@@ -80,6 +81,7 @@ __all__ = [
     'ExtractorFactory',
     'extractor_registry',
     'extract_from_document',
+
     # Parsers
     'PdfFieldParser',
     'OcrParser',
@@ -107,6 +109,10 @@ __all__ = [
     'SimplePipeline',
     'ExtractionPipelineBuilder',
     'extract_from_file',
+
+    # Strategies
+    'FusionStrategy',
+    'DocumentGroup'
 ]
 
 # Version
