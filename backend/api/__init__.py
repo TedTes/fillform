@@ -37,9 +37,11 @@ def create_app():
     from .routes.submission_routes import submission_bp
     from .routes.folder_routes import folder_bp
     from .routes.health_routes import health_bp
+    from api.routes.extraction_routes import extraction_bp
     
     app.register_blueprint(submission_bp, url_prefix='/api')
     app.register_blueprint(folder_bp, url_prefix='/api')
+    app.register_blueprint(extraction_bp,url_prefix='/api')
     app.register_blueprint(health_bp, url_prefix='/api')
     
     @app.route('/')
