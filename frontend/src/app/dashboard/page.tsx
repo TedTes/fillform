@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Upload as UpIcon, Download as DownIcon } from 'lucide-react'
+import { Upload as UpIcon, Download as DownIcon,FolderOpen,FolderIcon } from 'lucide-react'
 
 import { useRouter } from 'next/navigation'
 import type { Folder, InputFile, OutputFile,Client,Submission } from '@/types'
@@ -357,22 +357,30 @@ const handleCreateSubmissionWithTemplate = async (
 
   // ---------- File Upload ----------
   const handleUploadFiles = async () => {
+    // FIRST CHECK: No submission selected
+    if (!activeSubmission) {
+      toast.error('Please select a submission first')
+      return
+    }
+  
+    // SECOND CHECK: No folder ID (shouldn't happen, but defensive)
     if (!activeFolderId) {
       toast.error('No active folder')
       return
     }
+  
     const input = document.createElement('input')
     input.type = 'file'
     input.accept = '.pdf'
     input.multiple = true
-
+  
     input.onchange = async (e) => {
       const target = e.target as HTMLInputElement
       const files = Array.from(target.files || [])
       if (files.length === 0) return
-
-      toast.info(`Uploading ${files.length} file${files.length > 1 ? 's' : ''}...`)
-
+  
+      toast.info(`Uploading ${files.length} file${files.length > 1 ? 's' : ''} to ${activeSubmission?.name}...`)
+  
       for (const file of files) {
         try {
           // Create temp entry
@@ -385,10 +393,10 @@ const handleCreateSubmissionWithTemplate = async (
             uploadedAt: new Date().toISOString(),
           }
           setInputFiles((prev) => [...prev, temp])
-
+  
           // Upload with auto-classify
           const result = await uploadPdfToFolder(activeFolderId, file)
-
+  
           // Update file status
           setInputFiles((prev) =>
             prev.map((f) =>
@@ -402,7 +410,7 @@ const handleCreateSubmissionWithTemplate = async (
                 : f
             )
           )
-
+  
          
           if (result.submission_id) {
             try {
@@ -420,18 +428,18 @@ const handleCreateSubmissionWithTemplate = async (
               // Continue without classification
             }
           }
-
+  
         } catch (err) {
           console.error('Upload failed:', err)
           toast.error(`Failed to upload ${file.name}`)
           setInputFiles((prev) => prev.filter((f) => f.filename !== file.name))
         }
       }
-
+  
       toast.success(`${files.length} file${files.length > 1 ? 's' : ''} uploaded successfully`)
       loadFolders()
     }
-
+  
     input.click()
   }
 
@@ -595,16 +603,18 @@ const handleCreateSubmissionWithTemplate = async (
     )
   }
 
-  if (!activeFolder) {
+  if (!activeFolder && clients.length === 0) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
-          <p className="text-gray-600 mb-4">No folders available</p>
+          <FolderIcon className="w-16 h-16 mx-auto text-gray-300 mb-4" />
+          <p className="text-lg font-medium text-gray-700 mb-2">No clients yet</p>
+          <p className="text-sm text-gray-500 mb-4">Create your first client to get started</p>
           <button
-            onClick={handleNewFolder}
+            onClick={handleNewClient}
             className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
           >
-            Create Your First Folder
+            Create Your First Client
           </button>
         </div>
       </div>
@@ -685,6 +695,7 @@ const handleCreateSubmissionWithTemplate = async (
             {/* Input Files */}
             <InputFilesSection
   files={activeFolderInputs}
+  activeSubmission={activeSubmission}  // ADDED THIS LINE
   onUpload={handleUploadFiles}
   onRemove={handleRemoveFile}
   onPreview={handlePreviewInput}
@@ -695,6 +706,7 @@ const handleCreateSubmissionWithTemplate = async (
   {/* Upload Files (⬆️ up arrow) */}
   <button
     onClick={handleUploadFiles}
+    disabled={!activeSubmission}
     className="inline-flex h-7 items-center gap-1 rounded-md border-[0.6px] border-blue-400 px-2 py-1 text-xs font-semibold text-blue-700 hover:bg-blue-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1 transition-colors w-full sm:w-auto"
   >
     <UpIcon className="w-3.5 h-3.5" aria-hidden="true" />
@@ -704,7 +716,7 @@ const handleCreateSubmissionWithTemplate = async (
   {/* Generate New (⬇️ down arrow) */}
   <button
     onClick={handleGenerateOutput}
-    disabled={activeFolderInputs.length === 0}
+    disabled={activeFolderInputs.length === 0 || !activeSubmission}
     className={`inline-flex h-7  items-center gap-1 rounded-md border-[0.6px] border-blue-400 px-2 py-1 text-xs font-semibold transition-colors w-full sm:w-auto focus:outline-none focus:ring-2 focus:ring-offset-1
       ${
         activeFolderInputs.length === 0
