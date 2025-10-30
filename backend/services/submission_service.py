@@ -5,11 +5,12 @@ Submission service - orchestrates extraction and filling workflow.
 import os
 import uuid
 import json
+from typing import Optional,Dict,Any
 from datetime import datetime
 from werkzeug.utils import secure_filename
 from extraction.extractors import Acord126Extractor
 from filling.fillers import Acord126Filler
-
+from services.client_service import ClientService
 
 class SubmissionService:
     """
@@ -30,7 +31,7 @@ class SubmissionService:
         self.data_dir = os.path.join(self.storage_dir, 'data')
         self.folders_dir = os.path.join(self.storage_dir, 'folders')
         self.template_path = 'templates/ACORD_126.pdf'
-        
+        self.client_service = ClientService()
         # Create directories if they don't exist
         os.makedirs(self.uploads_dir, exist_ok=True)
         os.makedirs(self.outputs_dir, exist_ok=True)
@@ -244,3 +245,63 @@ class SubmissionService:
         # Fallback to legacy path
         output_path = os.path.join(self.outputs_dir, f"{submission_id}_filled.pdf")
         return output_path
+    
+    def create_submission(
+            self, 
+            client_id: str, 
+            name: str, 
+            template_type: Optional[str] = None
+     ) -> Dict[str, Any]:
+            """
+            Create a submission under a client.
+            
+            Args:
+                client_id: Client identifier
+                name: Submission name (e.g., "2025 Property Renewal")
+                template_type: Optional template type
+                
+            Returns:
+                Submission metadata
+            """
+            submission_id = str(uuid.uuid4())
+            
+            # Get client submissions path
+            submissions_path = self.client_service.get_submissions_path(client_id)
+            submission_path = os.path.join(submissions_path, submission_id)
+            
+            # Create submission structure
+            os.makedirs(os.path.join(submission_path, 'inputs'), exist_ok=True)
+            os.makedirs(os.path.join(submission_path, 'outputs'), exist_ok=True)
+            
+            # Create metadata
+            metadata = {
+                'submission_id': submission_id,
+                'client_id': client_id,
+                'name': name,
+                'template_type': template_type,
+                'created_at': datetime.utcnow().isoformat(),
+                'updated_at': datetime.utcnow().isoformat(),
+                'status': 'created',
+                'file_count': 0,
+                'files': []
+            }
+            
+            # Save metadata
+            metadata_path = os.path.join(submission_path, 'metadata.json')
+            with open(metadata_path, 'w') as f:
+                json.dump(metadata, f, indent=2)
+            
+            # Add to client
+            self.client_service.add_submission(client_id, submission_id)
+            
+            return metadata
+
+    def get_submission_path(self, client_id: str, submission_id: str) -> str:
+        """Get path to submission directory."""
+        return os.path.join(
+            self.client_service.get_submissions_path(client_id),
+            submission_id
+        )
+
+
+    

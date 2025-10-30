@@ -7,10 +7,10 @@
 import { useState } from 'react'
 import { Download, Eye, RotateCcw, Trash2, ChevronDown, ChevronRight, Loader2 } from 'lucide-react'
 import { fillPdf, downloadPdf } from '@/lib/api-client'
-import type { Submission, FillReport } from '@/types/submission'
+import type { CardSubmission, FillReport } from '@/types'
 
 interface SubmissionCardProps {
-  submission: Submission
+  submission:CardSubmission
   onReset: () => void
 }
 

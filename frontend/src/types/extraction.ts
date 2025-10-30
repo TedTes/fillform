@@ -4,7 +4,7 @@
 export interface ClassificationResult {
   document_type: string
   confidence: number
-  indicators: (string | { value: string; text?: string; [key: string]: any })[]
+  indicators: (string | { value: string; text?: string; [key: string]: unknown })[]
   classifier_results?: Array<{
     classifier: string
     document_type: string

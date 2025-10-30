@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import { Upload as UpIcon, Download as DownIcon } from 'lucide-react'
 
 import { useRouter } from 'next/navigation'
-import type { Folder, InputFile, OutputFile } from '@/types'
+import type { Folder, InputFile, OutputFile,Client,Submission } from '@/types'
 import type { ClassificationResult } from '@/types/extraction'
 import ClassificationModal from '@/components/ClassificationModal'
 import FolderPanel from '@/components/FolderPanel'
@@ -14,6 +14,7 @@ import GenerateModal from '@/components/GenerateModal'
 import useToast from '@/hooks/useToast'
 import PdfPreviewModal from '@/components/PdfPreviewModal'
 import { getInputPreviewUrl, getOutputPreviewUrl } from '@/lib/api-client'
+
 import {
   getFolders,
   createFolder as apiCreateFolder,
@@ -41,6 +42,10 @@ export default function Home() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
 
+  const [loading, setLoading] = useState(true)
+  const [clients, setClients] = useState<Client[]>([])
+  const [activeSubmission, setActiveSubmission] = useState<Submission | null>(null)
+
   const [classificationModal, setClassificationModal] = useState<{
     isOpen: boolean
     filename: string
@@ -52,6 +57,90 @@ export default function Home() {
     fileId: '',
     classification: null,
   })
+
+    // Fetch clients on mount
+    useEffect(() => {
+      fetchClients()
+      loadFolders()
+    }, [])
+
+
+    const fetchClients = async () => {
+      try {
+        const res = await fetch('/api/clients')
+        const data = await res.json()
+        if (data.success) {
+          setClients(data.clients)
+          // Auto-select first submission if available
+          if (data.clients.length > 0 && data.clients[0].submissions_detailed?.length > 0) {
+            const firstSub = data.clients[0].submissions_detailed[0]
+            setActiveSubmission(firstSub)
+            // Map submission to folder format for existing code
+            setActiveFolder({
+              folder_id: firstSub.submission_id,
+              name: firstSub.name,
+              created_at: firstSub.created_at,
+              file_count: firstSub.file_count,
+            })
+          }
+        }
+      } catch (error) {
+        console.error('Failed to fetch clients:', error)
+      }
+    }
+    const handleSubmissionClick = (submission: Submission) => {
+      setActiveSubmission(submission)
+      // Map submission to folder format for existing code compatibility
+      setActiveFolder({
+        folder_id: submission.submission_id,
+        name: submission.name,
+        created_at: submission.created_at,
+        file_count: submission.file_count,
+      })
+    }
+
+    const handleNewClient = async () => {
+      const name = prompt('Enter client name:')
+      if (!name?.trim()) return
+    
+      try {
+        const res = await fetch('/api/clients', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name: name.trim() }),
+        })
+        const data = await res.json()
+        if (data.success) {
+          await fetchClients()
+          toast.success(`Client "${name}" created`)
+        }
+      } catch (error) {
+        console.error('Failed to create client:', error)
+        toast.error('Failed to create client')
+      }
+    }
+    const handleNewSubmission = async (clientId: string) => {
+      const name = prompt('Enter submission name:')
+      if (!name?.trim()) return
+    
+      try {
+        const res = await fetch(`/api/clients/${clientId}/submissions`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name: name.trim() }),
+        })
+        const data = await res.json()
+        if (data.success) {
+          await fetchClients()
+          setActiveSubmission(data.submission)
+          toast.success(`Submission "${name}" created`)
+        }
+      } catch (error) {
+        console.error('Failed to create submission:', error)
+        toast.error('Failed to create submission')
+      }
+    }
+
   // Derived 
   const activeFolderId = activeFolder?.folder_id
   const activeFolderInputs = inputFiles.filter((f) => f.folder_id === activeFolderId)
@@ -537,15 +626,14 @@ export default function Home() {
       <div className="flex h-[calc(100vh-73px)] lg:h-[calc(100vh-89px)] ml-10 mt-8">
         {/* Left Panel */}
         <FolderPanel
-          folders={folders}
-          activeFolder={activeFolder}
-          onFolderClick={setActiveFolder}
-          onNewFolder={handleNewFolder}
-          onRename={handleRename}
-          onDelete={handleDelete}
-          isMobileOpen={isMobileMenuOpen}
-          onMobileToggle={() => setIsMobileMenuOpen(false)}
-        />
+  clients={clients}
+  activeSubmission={activeSubmission}
+  onSubmissionClick={handleSubmissionClick}
+  onNewClient={handleNewClient}
+  onNewSubmission={handleNewSubmission}
+  isMobileOpen={isMobileMenuOpen}
+  onMobileToggle={() => setIsMobileMenuOpen(false)}
+/>
 
         {/* Right Panel */}
         <main className="flex-1 overflow-y-auto w-full ml-3">
@@ -654,4 +742,5 @@ export default function Home() {
       )}
     </div>
   )
+
 }

@@ -2,7 +2,7 @@
  * TypeScript types for submission data.
  */
 
-export interface Submission {
+export interface CardSubmission {
   id: string
   folderId: string
   filename: string
