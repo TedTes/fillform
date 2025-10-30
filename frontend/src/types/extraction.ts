@@ -1,17 +1,17 @@
 /**
  * Extraction-specific types
  */
-
 export interface ClassificationResult {
+  document_type: string
+  confidence: number
+  indicators: (string | { value: string; text?: string; [key: string]: any })[]
+  classifier_results?: Array<{
+    classifier: string
     document_type: string
     confidence: number
-    indicators: string[]
-    classifier_results?: Array<{
-      classifier: string
-      document_type: string
-      confidence: number
-    }>
-  }
+  }>
+  classified_at?: string
+}
   
   export interface ExtractionResult {
     success: boolean

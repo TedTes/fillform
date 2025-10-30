@@ -99,14 +99,21 @@ export default function ClassificationPreview({
             Detection Indicators:
           </h4>
           <div className="flex flex-wrap gap-2">
-            {indicators.map((indicator, index) => (
-              <span
-                key={index}
-                className="inline-flex items-center px-2 py-1 bg-blue-50 text-blue-700 text-xs rounded-md border border-blue-200"
-              >
-                {indicator}
-              </span>
-            ))}
+            {indicators.map((indicator, index) => {
+              // Handle both string and object indicators
+              const text = typeof indicator === 'string' 
+                ? indicator
+                : indicator.value || indicator.text || JSON.stringify(indicator);
+              
+              return (
+                <span
+                  key={index}
+                  className="inline-flex items-center px-2 py-1 bg-blue-50 text-blue-700 text-xs rounded-md border border-blue-200"
+                >
+                  {text} 
+                </span>
+              );
+            })}
           </div>
         </div>
       )}
