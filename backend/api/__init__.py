@@ -17,7 +17,7 @@ def create_app():
     # Enable CORS for frontend
     CORS(app, resources={
         r"/api/*": {
-            "origins": os.environ.get("CORS_ORIGINS","http://localhost:5000"), 
+            "origins": os.environ.get("CORS_ORIGINS","http://localhost:3000").split(","), 
             "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
             "allow_headers": ["Content-Type"]
         }
@@ -41,7 +41,7 @@ def create_app():
     
     app.register_blueprint(submission_bp, url_prefix='/api')
     app.register_blueprint(folder_bp, url_prefix='/api')
-    app.register_blueprint(extraction_bp,url_prefix='/api')
+    app.register_blueprint(extraction_bp, url_prefix='/api/extraction')
     app.register_blueprint(health_bp, url_prefix='/api')
     
     @app.route('/')

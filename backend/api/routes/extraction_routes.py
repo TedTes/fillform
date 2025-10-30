@@ -11,7 +11,7 @@ from datetime import datetime
 from services.extraction_service import ExtractionService
 from utils.file_utils import allowed_file, get_file_extension
 
-extraction_bp = Blueprint('extraction', __name__, url_prefix='/api/extraction')
+extraction_bp = Blueprint('extraction', __name__)
 extraction_service = ExtractionService()
 
 
