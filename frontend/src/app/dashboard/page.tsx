@@ -13,6 +13,7 @@ import OutputFilesSection from '@/components/OutputFilesSection'
 import GenerateModal from '@/components/GenerateModal'
 import useToast from '@/hooks/useToast'
 import PdfPreviewModal from '@/components/PdfPreviewModal'
+import SubmissionTemplateModal from '@/components/SubmissionTemplateModal'
 import { getInputPreviewUrl, getOutputPreviewUrl } from '@/lib/api-client'
 
 import {
@@ -41,6 +42,10 @@ export default function Home() {
   const [isGenerateModalOpen, setIsGenerateModalOpen] = useState(false)
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
+
+  const [isTemplateModalOpen, setIsTemplateModalOpen] = useState(false)
+  const [selectedClientId, setSelectedClientId] = useState<string | null>(null)
+  const [selectedClientName, setSelectedClientName] = useState<string>('')
 
   const [loading, setLoading] = useState(true)
   const [clients, setClients] = useState<Client[]>([])
@@ -119,27 +124,45 @@ export default function Home() {
         toast.error('Failed to create client')
       }
     }
-    const handleNewSubmission = async (clientId: string) => {
-      const name = prompt('Enter submission name:')
-      if (!name?.trim()) return
-    
-      try {
-        const res = await fetch(`/api/clients/${clientId}/submissions`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ name: name.trim() }),
-        })
-        const data = await res.json()
-        if (data.success) {
-          await fetchClients()
-          setActiveSubmission(data.submission)
-          toast.success(`Submission "${name}" created`)
-        }
-      } catch (error) {
-        console.error('Failed to create submission:', error)
-        toast.error('Failed to create submission')
-      }
+const handleNewSubmission = (clientId: string) => {
+  const client = clients.find(c => c.client_id === clientId)
+  setSelectedClientId(clientId)
+  setSelectedClientName(client?.name || 'Client')
+  setIsTemplateModalOpen(true)
+}
+const handleCreateSubmissionWithTemplate = async (
+  name: string,
+  templateType: string
+) => {
+  if (!selectedClientId) return
+
+  try {
+    const res = await fetch(`/api/clients/${selectedClientId}/submissions`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        name: name.trim(),
+        template_type: templateType
+      }),
+    })
+    const data = await res.json()
+    if (data.success) {
+      await fetchClients()
+      setActiveSubmission(data.submission)
+      // Map to folder for compatibility
+      setActiveFolder({
+        folder_id: data.submission.submission_id,
+        name: data.submission.name,
+        created_at: data.submission.created_at,
+        file_count: data.submission.file_count,
+      })
+      toast.success(`Submission "${name}" created`)
     }
+  } catch (error) {
+    console.error('Failed to create submission:', error)
+    toast.error('Failed to create submission')
+  }
+}
 
   // Derived 
   const activeFolderId = activeFolder?.folder_id
@@ -740,6 +763,12 @@ export default function Home() {
           }
         />
       )}
+      <SubmissionTemplateModal
+  isOpen={isTemplateModalOpen}
+  onClose={() => setIsTemplateModalOpen(false)}
+  clientName={selectedClientName}
+  onSubmit={handleCreateSubmissionWithTemplate}
+/>
     </div>
   )
 

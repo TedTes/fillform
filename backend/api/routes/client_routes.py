@@ -230,3 +230,26 @@ def create_submission(client_id):
         
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+
+
+
+@client_bp.route('/templates', methods=['GET'])
+def list_templates():
+    """
+    List all available submission templates.
+    
+    Returns:
+        JSON with list of templates
+    """
+    try:
+        from lib.submission_templates import list_templates as get_all_templates
+        
+        templates = get_all_templates()
+        
+        return jsonify({
+            'success': True,
+            'templates': templates
+        }), 200
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
