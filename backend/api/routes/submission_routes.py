@@ -990,3 +990,300 @@ def get_form_template(template_id):
         return jsonify({'error': str(e)}), 404
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+
+
+
+@submission_bp.route('/submissions/export/csv', methods=['POST'])
+def export_to_csv():
+    """
+    Export submissions to CSV.
+    
+    Request Body:
+        {
+            "submission_ids": ["id1", "id2", ...],  // Optional, exports all if not provided
+            "fields": ["field1", "field2", ...]     // Optional, exports all fields if not provided
+        }
+    
+    Returns:
+        CSV file
+    """
+    try:
+        data = request.get_json() or {}
+        
+        # Get submissions
+        if 'submission_ids' in data and data['submission_ids']:
+            submissions = submission_service.get_submissions_by_ids(data['submission_ids'])
+        else:
+            submissions = submission_service.get_all_submissions()
+        
+        if not submissions:
+            return jsonify({'error': 'No submissions to export'}), 400
+        
+        # Get fields to export
+        fields = data.get('fields')
+        
+        # Generate CSV
+        csv_path = submission_service.export_service.export_to_csv(
+            submissions=submissions,
+            fields=fields
+        )
+        
+        return send_file(
+            csv_path,
+            mimetype='text/csv',
+            as_attachment=True,
+            download_name=f'submissions_export_{datetime.utcnow().strftime("%Y%m%d_%H%M%S")}.csv'
+        )
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@submission_bp.route('/submissions/export/json', methods=['POST'])
+def export_to_json():
+    """
+    Export submissions to JSON.
+    
+    Request Body:
+        {
+            "submission_ids": ["id1", "id2", ...],  // Optional
+            "pretty": true                          // Optional, default true
+        }
+    
+    Returns:
+        JSON file
+    """
+    try:
+        data = request.get_json() or {}
+        
+        # Get submissions
+        if 'submission_ids' in data and data['submission_ids']:
+            submissions = submission_service.get_submissions_by_ids(data['submission_ids'])
+        else:
+            submissions = submission_service.get_all_submissions()
+        
+        if not submissions:
+            return jsonify({'error': 'No submissions to export'}), 400
+        
+        pretty = data.get('pretty', True)
+        
+        # Generate JSON
+        json_path = submission_service.export_service.export_to_json(
+            submissions=submissions,
+            pretty=pretty
+        )
+        
+        return send_file(
+            json_path,
+            mimetype='application/json',
+            as_attachment=True,
+            download_name=f'submissions_export_{datetime.utcnow().strftime("%Y%m%d_%H%M%S")}.json'
+        )
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@submission_bp.route('/submissions/export/package', methods=['POST'])
+def export_package():
+    """
+    Export complete package as ZIP.
+    
+    Request Body:
+        {
+            "submission_ids": ["id1", "id2", ...],  // Optional
+            "include_pdfs": true,                   // Optional, default true
+            "include_json": true,                   // Optional, default true
+            "include_csv": true                     // Optional, default true
+        }
+    
+    Returns:
+        ZIP file containing PDFs, JSON files, CSV summary, and manifest
+    """
+    try:
+        data = request.get_json() or {}
+        
+        # Get submissions
+        if 'submission_ids' in data and data['submission_ids']:
+            submissions = submission_service.get_submissions_by_ids(data['submission_ids'])
+        else:
+            submissions = submission_service.get_all_submissions()
+        
+        if not submissions:
+            return jsonify({'error': 'No submissions to export'}), 400
+        
+        # Create package
+        zip_path = submission_service.export_service.create_export_package(
+            submissions=submissions,
+            include_pdfs=data.get('include_pdfs', True),
+            include_json=data.get('include_json', True),
+            include_csv=data.get('include_csv', True)
+        )
+        
+        return send_file(
+            zip_path,
+            mimetype='application/zip',
+            as_attachment=True,
+            download_name=f'submissions_package_{datetime.utcnow().strftime("%Y%m%d_%H%M%S")}.zip'
+        )
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@submission_bp.route('/submissions/export/webhook', methods=['POST'])
+def send_to_webhook():
+    """
+    Send submission data to webhook endpoint.
+    
+    Request Body:
+        {
+            "webhook_url": "https://example.com/webhook",
+            "submission_ids": ["id1", "id2", ...],  // Optional
+            "format": "full",                        // 'full', 'summary', or 'ids_only'
+            "headers": {                             // Optional custom headers
+                "Authorization": "Bearer token"
+            }
+        }
+    
+    Returns:
+        JSON with webhook response details
+    """
+    try:
+        data = request.get_json()
+        
+        if not data or 'webhook_url' not in data:
+            return jsonify({'error': 'webhook_url is required'}), 400
+        
+        webhook_url = data['webhook_url']
+        
+        # Get submissions
+        if 'submission_ids' in data and data['submission_ids']:
+            submissions = submission_service.get_submissions_by_ids(data['submission_ids'])
+        else:
+            submissions = submission_service.get_all_submissions()
+        
+        if not submissions:
+            return jsonify({'error': 'No submissions to send'}), 400
+        
+        # Generate payload
+        format_type = data.get('format', 'full')
+        payload = submission_service.export_service.generate_api_payload(
+            submissions=submissions,
+            format=format_type
+        )
+        
+        # Send webhook
+        headers = data.get('headers', {})
+        response = submission_service.export_service.send_webhook(
+            webhook_url=webhook_url,
+            payload=payload,
+            headers=headers
+        )
+        
+        return jsonify({
+            'success': response['success'],
+            'webhook_response': response
+        }), 200 if response['success'] else 500
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@submission_bp.route('/submissions/list', methods=['GET'])
+def list_all_submissions():
+    """
+    List all submissions with basic info.
+    
+    Query Parameters:
+        limit: Maximum number of results (default: 100)
+        offset: Offset for pagination (default: 0)
+        status: Filter by status (optional)
+    
+    Returns:
+        JSON with list of submissions
+    """
+    try:
+        limit = int(request.args.get('limit', 100))
+        offset = int(request.args.get('offset', 0))
+        status_filter = request.args.get('status')
+        
+        # Get all submissions
+        all_submissions = submission_service.get_all_submissions()
+        
+        # Filter by status if provided
+        if status_filter:
+            all_submissions = [
+                s for s in all_submissions 
+                if s.get('status') == status_filter
+            ]
+        
+        # Apply pagination
+        total = len(all_submissions)
+        submissions = all_submissions[offset:offset + limit]
+        
+        # Return summary info
+        submission_list = [
+            {
+                'submission_id': s.get('submission_id'),
+                'filename': s.get('filename'),
+                'status': s.get('status'),
+                'uploaded_at': s.get('uploaded_at'),
+                'confidence': s.get('confidence'),
+                'folder_id': s.get('folder_id')
+            }
+            for s in submissions
+        ]
+        
+        return jsonify({
+            'success': True,
+            'total': total,
+            'limit': limit,
+            'offset': offset,
+            'submissions': submission_list
+        }), 200
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@submission_bp.route('/submissions/stats', methods=['GET'])
+def get_submissions_stats():
+    """
+    Get statistics about submissions.
+    
+    Returns:
+        JSON with submission statistics
+    """
+    try:
+        all_submissions = submission_service.get_all_submissions()
+        
+        # Calculate stats
+        total = len(all_submissions)
+        by_status = {}
+        total_confidence = 0
+        confidence_count = 0
+        
+        for submission in all_submissions:
+            status = submission.get('status', 'unknown')
+            by_status[status] = by_status.get(status, 0) + 1
+            
+            confidence = submission.get('confidence')
+            if confidence is not None:
+                total_confidence += confidence
+                confidence_count += 1
+        
+        avg_confidence = total_confidence / confidence_count if confidence_count > 0 else 0
+        
+        return jsonify({
+            'success': True,
+            'stats': {
+                'total_submissions': total,
+                'by_status': by_status,
+                'average_confidence': round(avg_confidence, 2),
+                'last_updated': datetime.utcnow().isoformat()
+            }
+        }), 200
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500

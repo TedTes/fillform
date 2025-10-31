@@ -15,6 +15,7 @@ from lib.submission_templates import get_template, TEMPLATES
 from services.version_service import VersionService
 from services.comparison_service import ComparisonService
 from services.form_generator import FormGenerator
+from services.export_service import ExportService
 
 class SubmissionService:
     """
@@ -47,6 +48,7 @@ class SubmissionService:
         self.version_service = VersionService(self.storage_dir)
         self.comparison_service = ComparisonService(self.storage_dir)
         self.form_generator = FormGenerator()
+        self.export_service = ExportService(self.storage_dir)
     
     def upload_and_extract(self, file, folder_id: str = None, progress_callback=None):
         """
@@ -463,7 +465,7 @@ class SubmissionService:
         self,
         submission_id: str,
         include_optional: bool = True
-    ) -> Dict[str, Any]:
+     ) -> Dict[str, Any]:
         """
         Generate dynamic form for a submission.
         
@@ -492,6 +494,53 @@ class SubmissionService:
         )
         
         return form
+
+
+    def get_all_submissions(self) -> List[Dict[str, Any]]:
+        """
+        Get all submissions.
+        
+        Returns:
+            List of all submissions
+        """
+        submissions = []
+        
+        if not os.path.exists(self.data_dir):
+            return submissions
+        
+        for filename in os.listdir(self.data_dir):
+            if filename.endswith('_meta.json'):
+                submission_id = filename.replace('_meta.json', '')
+                try:
+                    submission = self.get_submission(submission_id)
+                    if submission:
+                        submissions.append(submission)
+                except:
+                    continue
+        
+        return submissions
+
+    def get_submissions_by_ids(self, submission_ids: List[str]) -> List[Dict[str, Any]]:
+        """
+        Get multiple submissions by IDs.
+        
+        Args:
+            submission_ids: List of submission IDs
+            
+        Returns:
+            List of submissions
+        """
+        submissions = []
+        
+        for submission_id in submission_ids:
+            try:
+                submission = self.get_submission(submission_id)
+                if submission:
+                    submissions.append(submission)
+            except:
+                continue
+        
+        return submissions
     
 
 
