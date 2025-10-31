@@ -12,6 +12,7 @@ from extraction.extractors import Acord126Extractor
 from filling.fillers import Acord126Filler
 from services.client_service import ClientService
 from lib.submission_templates import get_template, TEMPLATES
+from services.version_service import VersionService
 class SubmissionService:
     """
     Service for managing submission workflow.
@@ -40,6 +41,7 @@ class SubmissionService:
         # Initialize extractor and filler
         self.extractor = Acord126Extractor()
         self.filler = Acord126Filler()
+        self.version_service = VersionService(self.storage_dir)
     
     def upload_and_extract(self, file, folder_id: str = None, progress_callback=None):
         """
@@ -103,11 +105,19 @@ class SubmissionService:
         if progress_callback:
             progress_callback(submission_id, 80, 'extracting', 'Saving extracted data...')
         
+        version_id = self.version_service.create_version(
+            submission_id=submission_id,
+            data=extraction_result.json,
+            user='system',
+            action='extract',
+            notes=f'Initial extraction from {filename}'
+        )
         # Save extracted JSON
         data_path = os.path.join(self.data_dir, f"{submission_id}.json")
         with open(data_path, 'w') as f:
             json.dump(extraction_result.json, f, indent=2)
         
+        metadata['current_version_id'] = version_id
         # Progress: 90% - Creating metadata
         if progress_callback:
             progress_callback(submission_id, 90, 'ready', 'Finalizing...')
@@ -122,7 +132,12 @@ class SubmissionService:
             'uploaded_at': datetime.utcnow().isoformat(),
             'status': 'extracted',
             'confidence': extraction_result.confidence,
-            'warnings': extraction_result.warnings
+            'warnings': extraction_result.warnings,
+            'current_version_id': version_id,
+            'field_confidence': extraction_result.field_confidence,
+            'field_hints': extraction_result.field_hints,
+            'extraction_issues': extraction_result.extraction_issues,
+            'suggested_fixes': extraction_result.suggested_fixes
         }
         
         metadata_path = os.path.join(self.data_dir, f"{submission_id}_meta.json")
@@ -179,13 +194,15 @@ class SubmissionService:
             'data': data
         }
     
-    def update_data(self, submission_id: str, data):
+    def update_data(self, submission_id: str, data, user: str = 'user', notes: str = ''):
         """
-        Update submission data.
+        Update submission data with versioning.
         
         Args:
             submission_id: Submission identifier
             data: Updated JSON data
+            user: User making the update
+            notes: Optional notes about the update
         
         Returns:
             Updated submission
@@ -195,9 +212,31 @@ class SubmissionService:
         if not os.path.exists(data_path):
             raise ValueError("Submission not found")
         
+       
+        version_id = self.version_service.create_version(
+            submission_id=submission_id,
+            data=data,
+            user=user,
+            action='update',
+            notes=notes or 'Manual data update'
+        )
+        
         # Save updated data
         with open(data_path, 'w') as f:
             json.dump(data, f, indent=2)
+        
+       
+        metadata_path = os.path.join(self.data_dir, f"{submission_id}_meta.json")
+        if os.path.exists(metadata_path):
+            with open(metadata_path, 'r') as f:
+                metadata = json.load(f)
+            
+            metadata['current_version_id'] = version_id
+            metadata['updated_at'] = datetime.utcnow().isoformat()
+            metadata['updated_by'] = user
+            
+            with open(metadata_path, 'w') as f:
+                json.dump(metadata, f, indent=2)
         
         return self.get_submission(submission_id)
     
@@ -353,4 +392,27 @@ class SubmissionService:
         )
 
 
+    def get_version_history(self, submission_id: str):
+        """
+        Get version history for a submission.
+        
+        Args:
+            submission_id: Submission identifier
+        
+        Returns:
+            List of versions
+        """
+        return self.version_service.list_versions(submission_id)
+
+    def get_audit_trail(self, submission_id: str):
+        """
+        Get audit trail for a submission.
+        
+        Args:
+            submission_id: Submission identifier
+        
+        Returns:
+            Audit trail entries
+        """
+        return self.version_service.get_audit_trail(submission_id)
     

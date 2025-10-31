@@ -540,3 +540,181 @@ def preview_output_pdf(submission_id):
         import traceback
         traceback.print_exc()
         return jsonify({'error': str(e)}), 500
+
+
+
+@submission_bp.route('/submissions/<submission_id>/versions', methods=['GET'])
+def get_version_history(submission_id):
+    """
+    Get version history for a submission.
+    
+    Args:
+        submission_id: Submission identifier
+    
+    Returns:
+        JSON with version history
+    """
+    try:
+        versions = submission_service.get_version_history(submission_id)
+        
+        return jsonify({
+            'success': True,
+            'submission_id': submission_id,
+            'versions': versions,
+            'total_versions': len(versions)
+        }), 200
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@submission_bp.route('/submissions/<submission_id>/versions/<version_id>', methods=['GET'])
+def get_specific_version(submission_id, version_id):
+    """
+    Get a specific version of submission data.
+    
+    Args:
+        submission_id: Submission identifier
+        version_id: Version identifier
+    
+    Returns:
+        JSON with version data
+    """
+    try:
+        version = submission_service.version_service.get_version(submission_id, version_id)
+        
+        if not version:
+            return jsonify({'error': 'Version not found'}), 404
+        
+        return jsonify({
+            'success': True,
+            'version': version
+        }), 200
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@submission_bp.route('/submissions/<submission_id>/audit-trail', methods=['GET'])
+def get_audit_trail(submission_id):
+    """
+    Get audit trail for a submission.
+    
+    Args:
+        submission_id: Submission identifier
+    
+    Returns:
+        JSON with audit trail
+    """
+    try:
+        audit_trail = submission_service.get_audit_trail(submission_id)
+        
+        return jsonify({
+            'success': True,
+            'submission_id': submission_id,
+            'audit_trail': audit_trail,
+            'total_entries': len(audit_trail)
+        }), 200
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@submission_bp.route('/submissions/<submission_id>/versions/compare', methods=['POST'])
+def compare_versions(submission_id):
+    """
+    Compare two versions.
+    
+    Request Body:
+        {
+            "version_id_1": "uuid1",
+            "version_id_2": "uuid2"
+        }
+    
+    Returns:
+        JSON with comparison results
+    """
+    try:
+        data = request.get_json()
+        
+        version_id_1 = data.get('version_id_1')
+        version_id_2 = data.get('version_id_2')
+        
+        if not version_id_1 or not version_id_2:
+            return jsonify({'error': 'Both version IDs required'}), 400
+        
+        comparison = submission_service.version_service.compare_versions(
+            submission_id,
+            version_id_1,
+            version_id_2
+        )
+        
+        return jsonify({
+            'success': True,
+            'comparison': comparison
+        }), 200
+        
+    except ValueError as e:
+        return jsonify({'error': str(e)}), 400
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@submission_bp.route('/submissions/<submission_id>/versions/<version_id>/rollback', methods=['POST'])
+def rollback_to_version(submission_id, version_id):
+    """
+    Rollback to a specific version.
+    
+    Args:
+        submission_id: Submission identifier
+        version_id: Version to rollback to
+    
+    Request Body (optional):
+        {
+            "user": "username",
+            "notes": "Reason for rollback"
+        }
+    
+    Returns:
+        JSON with new version info
+    """
+    try:
+        data = request.get_json() or {}
+        user = data.get('user', 'user')
+        notes = data.get('notes', '')
+        
+        # Get the version to rollback to
+        target_version = submission_service.version_service.get_version(submission_id, version_id)
+        
+        if not target_version:
+            return jsonify({'error': 'Version not found'}), 404
+        
+        # Create rollback version
+        new_version_id = submission_service.version_service.rollback_to_version(
+            submission_id,
+            version_id,
+            user
+        )
+        
+        # Update current data with rolled-back data
+        submission_service.update_data(
+            submission_id,
+            target_version['data'],
+            user=user,
+            notes=notes or f"Rolled back to version {target_version['version_number']}"
+        )
+        
+        return jsonify({
+            'success': True,
+            'new_version_id': new_version_id,
+            'rolled_back_to': {
+                'version_id': version_id,
+                'version_number': target_version['version_number']
+            },
+            'message': 'Successfully rolled back'
+        }), 200
+        
+    except ValueError as e:
+        return jsonify({'error': str(e)}), 400
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
