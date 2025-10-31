@@ -13,6 +13,7 @@ from filling.fillers import Acord126Filler
 from services.client_service import ClientService
 from lib.submission_templates import get_template, TEMPLATES
 from services.version_service import VersionService
+from services.comparison_service import ComparisonService
 class SubmissionService:
     """
     Service for managing submission workflow.
@@ -42,6 +43,7 @@ class SubmissionService:
         self.extractor = Acord126Extractor()
         self.filler = Acord126Filler()
         self.version_service = VersionService(self.storage_dir)
+        self.comparison_service = ComparisonService(self.storage_dir)
     
     def upload_and_extract(self, file, folder_id: str = None, progress_callback=None):
         """
@@ -415,4 +417,41 @@ class SubmissionService:
             Audit trail entries
         """
         return self.version_service.get_audit_trail(submission_id)
+
+
+    def compare_with_original(self, submission_id: str) -> Dict[str, Any]:
+        """
+        Compare current data with original extracted data.
+        
+        Args:
+            submission_id: Submission identifier
+            
+        Returns:
+            Comparison result
+        """
+        # Get current data
+        current_submission = self.get_submission(submission_id)
+        if not current_submission:
+            raise ValueError("Submission not found")
+        
+        current_data = current_submission['data']
+        
+        # Get original extraction (version 1)
+        version_1 = self.version_service.get_version(submission_id, 
+                                                    self.version_service.list_versions(submission_id)[0]['version_id'])
+        
+        if not version_1:
+            raise ValueError("Original version not found")
+        
+        original_data = version_1['data']
+        
+        # Compare
+        comparison = self.comparison_service.compare_data(
+            source_a=original_data,
+            source_b=current_data,
+            source_a_label='Original Extraction',
+            source_b_label='Current Data'
+        )
+        
+        return comparison
     

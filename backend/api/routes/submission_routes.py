@@ -718,3 +718,195 @@ def rollback_to_version(submission_id, version_id):
         return jsonify({'error': str(e)}), 400
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+
+
+
+
+# ============================================
+#  DATA COMPARISON & CONFLICT RESOLUTION
+# ============================================
+
+@submission_bp.route('/submissions/<submission_id>/compare', methods=['POST'])
+def compare_data(submission_id):
+    """
+    Compare data from two sources.
+    
+    Request Body:
+        {
+            "source_a": {...},  // First data source
+            "source_b": {...},  // Second data source
+            "source_a_label": "Original",
+            "source_b_label": "Modified"
+        }
+    
+    Returns:
+        JSON with comparison results and conflicts
+    """
+    try:
+        data = request.get_json()
+        
+        source_a = data.get('source_a')
+        source_b = data.get('source_b')
+        source_a_label = data.get('source_a_label', 'Source A')
+        source_b_label = data.get('source_b_label', 'Source B')
+        
+        if not source_a or not source_b:
+            return jsonify({'error': 'Both data sources required'}), 400
+        
+        comparison = submission_service.comparison_service.compare_data(
+            source_a=source_a,
+            source_b=source_b,
+            source_a_label=source_a_label,
+            source_b_label=source_b_label
+        )
+        
+        return jsonify({
+            'success': True,
+            'comparison': comparison
+        }), 200
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@submission_bp.route('/submissions/<submission_id>/compare-with-original', methods=['GET'])
+def compare_with_original(submission_id):
+    """
+    Compare current data with original extraction.
+    
+    Args:
+        submission_id: Submission identifier
+    
+    Returns:
+        JSON with comparison showing all changes since extraction
+    """
+    try:
+        comparison = submission_service.compare_with_original(submission_id)
+        
+        return jsonify({
+            'success': True,
+            'comparison': comparison
+        }), 200
+        
+    except ValueError as e:
+        return jsonify({'error': str(e)}), 404
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@submission_bp.route('/submissions/<submission_id>/conflicts/<field>/suggest', methods=['POST'])
+def suggest_resolution(submission_id, field):
+    """
+    Get resolution suggestion for a conflict.
+    
+    Request Body:
+        {
+            "conflict": {
+                "field": "...",
+                "value_a": "...",
+                "value_b": "...",
+                ...
+            },
+            "context": {
+                "confidence_a": 0.85,
+                "confidence_b": 0.92
+            }
+        }
+    
+    Returns:
+        JSON with resolution suggestion
+    """
+    try:
+        data = request.get_json()
+        conflict = data.get('conflict')
+        context = data.get('context', {})
+        
+        if not conflict:
+            return jsonify({'error': 'Conflict information required'}), 400
+        
+        suggestion = submission_service.comparison_service.suggest_resolution(
+            conflict=conflict,
+            context=context
+        )
+        
+        return jsonify({
+            'success': True,
+            'suggestion': suggestion
+        }), 200
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@submission_bp.route('/submissions/<submission_id>/conflicts/resolve', methods=['POST'])
+def resolve_conflicts(submission_id):
+    """
+    Resolve conflicts and apply changes.
+    
+    Request Body:
+        {
+            "comparison_id": "uuid",
+            "resolutions": [
+                {
+                    "field": "applicant.phone",
+                    "action": "use_b",
+                    "value": "(555) 123-4567",
+                    "reasoning": "Corrected format"
+                }
+            ],
+            "user": "user@example.com"
+        }
+    
+    Returns:
+        JSON with updated submission data
+    """
+    try:
+        data = request.get_json()
+        
+        comparison_id = data.get('comparison_id')
+        resolutions = data.get('resolutions', [])
+        user = data.get('user', 'user')
+        
+        if not comparison_id or not resolutions:
+            return jsonify({'error': 'Comparison ID and resolutions required'}), 400
+        
+        # Get current data
+        submission = submission_service.get_submission(submission_id)
+        if not submission:
+            return jsonify({'error': 'Submission not found'}), 404
+        
+        current_data = submission['data']
+        
+        # Record each resolution
+        recorded_resolutions = []
+        for resolution in resolutions:
+            recorded = submission_service.comparison_service.resolve_conflict(
+                comparison_id=comparison_id,
+                field=resolution['field'],
+                resolution=resolution,
+                user=user
+            )
+            recorded_resolutions.append(recorded)
+        
+        # Apply resolutions to data
+        updated_data = submission_service.comparison_service.apply_resolutions(
+            base_data=current_data,
+            resolutions=recorded_resolutions
+        )
+        
+        # Update submission with resolved data
+        submission_service.update_data(
+            submission_id=submission_id,
+            data=updated_data,
+            user=user,
+            notes=f"Resolved {len(resolutions)} conflict(s)"
+        )
+        
+        return jsonify({
+            'success': True,
+            'message': f'Resolved {len(resolutions)} conflict(s)',
+            'resolutions': recorded_resolutions
+        }), 200
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
