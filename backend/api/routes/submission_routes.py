@@ -178,13 +178,7 @@ def batch_fill_pdfs():
 @submission_bp.route('/submissions/<submission_id>', methods=['GET'])
 def get_submission(submission_id):
     """
-    Get submission data with field-level confidence.
-    
-    Args:
-        submission_id: Submission identifier
-    
-    Returns:
-        JSON with submission details including field confidence
+    Get submission data with field-level confidence and guidance.
     """
     try:
         submission = submission_service.get_submission(submission_id)
@@ -192,22 +186,31 @@ def get_submission(submission_id):
         if not submission:
             return jsonify({'error': 'Submission not found'}), 404
         
-        # Load field confidence if available
-        data_path = os.path.join('storage/data', f"{submission_id}.json")
+        # Load field confidence and guidance
         metadata_path = os.path.join('storage/data', f"{submission_id}_meta.json")
         
         field_confidence = {}
+        field_hints = {}
+        extraction_issues = {}
+        suggested_fixes = {}
+        
         if os.path.exists(metadata_path):
             import json
             with open(metadata_path, 'r') as f:
                 metadata = json.load(f)
                 field_confidence = metadata.get('field_confidence', {})
+                field_hints = metadata.get('field_hints', {})
+                extraction_issues = metadata.get('extraction_issues', {})
+                suggested_fixes = metadata.get('suggested_fixes', {})
         
         return jsonify({
             'success': True,
             'submission': {
                 **submission,
-                'field_confidence': field_confidence
+                'field_confidence': field_confidence,
+                'field_hints': field_hints,
+                'extraction_issues': extraction_issues,
+                'suggested_fixes': suggested_fixes,
             }
         }), 200
         

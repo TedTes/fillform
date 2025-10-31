@@ -16,6 +16,8 @@ import {
   Mail,
   Filter,
   AlertCircle,
+  HelpCircle,
+  Lightbulb,
   MapPin,
   Edit
 } from 'lucide-react'
@@ -36,7 +38,8 @@ interface DataSectionProps {
   isExpanded: boolean
   onToggle: () => void
   onEdit?: (field: string, value: string) => void
-  showingFiltered:boolean
+  showingFiltered: boolean
+  result: ExtractionResult
 }
 
 // Individual Data Field Component
@@ -45,6 +48,7 @@ interface DataFieldProps {
   value: string | number | boolean
   confidence?: number
   onEdit?: (field: string, value: string) => void
+  result: ExtractionResult  
 }
 
 export default function ExtractionResults({
@@ -84,13 +88,7 @@ export default function ExtractionResults({
     }
     return { color: 'text-orange-700', bgColor: 'bg-orange-50', label: 'Low' }
   }
-  const getConfidenceColorClass = (confidence?: number): string => {
-    if (confidence === undefined) return 'bg-gray-50 border-gray-200'
-    if (confidence >= 0.9) return 'bg-green-50 border-green-200'
-    if (confidence >= 0.7) return 'bg-blue-50 border-blue-200'
-    if (confidence >= 0.5) return 'bg-yellow-50 border-yellow-200'
-    return 'bg-orange-50 border-orange-200'
-  }
+
   const filterFieldsByConfidence = (
     fields: Array<{ key: string; value: string | number | boolean; confidence?: number }>
   ) => {
@@ -119,13 +117,12 @@ export default function ExtractionResults({
         : 0
     }
   }
+  
   const stats = getLowConfidenceStats()
-
-
   const confidenceStyle = getConfidenceStyle(result.confidence)
 
   // Group data by category
-  const groupedData = groupDataByCategory(result.data)
+  const groupedData = groupDataByCategory(result.data, result.field_confidence)
 
   return (
     <div className={`bg-white border-2 border-gray-200 rounded-xl overflow-hidden ${className}`}>
@@ -151,8 +148,9 @@ export default function ExtractionResults({
             </div>
           </div>
         </div>
-         {/* Low Confidence Alert */}
-         {stats.lowConfidence > 0 && (
+        
+        {/* Low Confidence Alert */}
+        {stats.lowConfidence > 0 && (
           <div className="mt-3 flex items-start gap-2 px-3 py-2 bg-yellow-100 border border-yellow-200 rounded-lg">
             <AlertCircle className="w-4 h-4 text-yellow-700 flex-shrink-0 mt-0.5" />
             <div className="flex-1">
@@ -165,9 +163,10 @@ export default function ExtractionResults({
             </div>
           </div>
         )}
+      </div>
  
-{/* Filter Controls */}
-{stats.lowConfidence > 0 && (
+      {/* Filter Controls */}
+      {stats.lowConfidence > 0 && (
         <div className="px-6 py-3 bg-gray-50 border-b border-gray-200">
           <div className="flex items-center justify-between gap-4">
             <button
@@ -204,6 +203,7 @@ export default function ExtractionResults({
           </div>
         </div>
       )}
+
       {/* Warnings/Errors */}
       {((result.warnings && result.warnings.length > 0) || (result.errors && result.errors.length > 0)) && (
         <div className="px-6 py-4 space-y-2 bg-yellow-50 border-b border-yellow-100">
@@ -225,11 +225,13 @@ export default function ExtractionResults({
       {/* Extracted Data Sections */}
       <div className="divide-y divide-gray-200">
         {Object.entries(groupedData).map(([category, fields]) => {
-           const filteredFields = filterFieldsByConfidence(fields)
-            // Skip empty sections when filtering
+          const filteredFields = filterFieldsByConfidence(fields)
+          
+          // Skip empty sections when filtering
           if (showLowConfidenceOnly && filteredFields.length === 0) {
             return null
           }
+          
           return (
             <DataSection
               key={category}
@@ -239,9 +241,10 @@ export default function ExtractionResults({
               onToggle={() => toggleSection(category)}
               onEdit={onEdit}
               showingFiltered={showLowConfidenceOnly}
+              result={result}
             />
           )
-          })}
+        })}
       </div>
 
       {/* Metadata */}
@@ -286,12 +289,19 @@ export default function ExtractionResults({
         </div>
       )}
     </div>
-    </div>
   )
 }
 
 
-function DataSection({ category, fields, isExpanded, onToggle, onEdit,showingFiltered = false  }: DataSectionProps) {
+function DataSection({ 
+  category, 
+  fields, 
+  isExpanded, 
+  onToggle, 
+  onEdit, 
+  showingFiltered = false, 
+  result 
+}: DataSectionProps) {
   const getCategoryIcon = (cat: string) => {
     const lower = cat.toLowerCase()
     if (lower.includes('applicant') || lower.includes('contact')) return User
@@ -338,6 +348,7 @@ function DataSection({ category, fields, isExpanded, onToggle, onEdit,showingFil
               value={field.value}
               confidence={field.confidence}
               onEdit={onEdit}
+              result={result}
             />
           ))}
         </div>
@@ -347,9 +358,12 @@ function DataSection({ category, fields, isExpanded, onToggle, onEdit,showingFil
 }
 
 
-function DataField({ fieldKey, value, confidence, onEdit }: DataFieldProps) {
+function DataField({ fieldKey, value, confidence, onEdit, result }: DataFieldProps) {
   const [isEditing, setIsEditing] = useState(false)
   const [editValue, setEditValue] = useState(String(value))
+  const [showGuidance, setShowGuidance] = useState(false) 
+
+
 
   const handleSave = () => {
     if (onEdit) {
@@ -363,6 +377,13 @@ function DataField({ fieldKey, value, confidence, onEdit }: DataFieldProps) {
     setIsEditing(false)
   }
 
+  const handleApplySuggestion = () => {
+    if (suggestedFix) {
+      setEditValue(suggestedFix)
+      setIsEditing(true)
+    }
+  }
+
   // More prominent confidence display
   const getConfidenceStyle = (conf: number) => {
     if (conf >= 0.9) return { color: 'text-green-600', bg: 'bg-green-50', border: 'border-green-200', icon: '✓' }
@@ -372,63 +393,131 @@ function DataField({ fieldKey, value, confidence, onEdit }: DataFieldProps) {
   }
 
   const confStyle = confidence !== undefined ? getConfidenceStyle(confidence) : null
+  const hint = result.field_hints?.[fieldKey]
+  const issues = result.extraction_issues?.[fieldKey] || []
+  const suggestedFix = result.suggested_fixes?.[fieldKey]
+  const hasGuidance = hint || issues.length > 0 || suggestedFix
 
   return (
-    <div className={`flex items-start gap-3 p-3 rounded-lg border ${confStyle?.border || 'border-gray-200'} ${confStyle?.bg || 'bg-white'}`}>
-      <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-2 mb-1">
-          <label className="text-sm font-medium text-gray-700">
-            {formatFieldName(fieldKey)}
-          </label>
-          
-          {/*  Prominent confidence badge */}
-          {confidence !== undefined && (
-            <div className={`flex items-center gap-1 px-2 py-0.5 rounded ${confStyle?.bg} border ${confStyle?.border}`}>
-              <span className="text-xs">{confStyle?.icon}</span>
-              <span className={`text-xs font-bold ${confStyle?.color}`}>
-                {Math.round(confidence * 100)}%
-              </span>
+    <div className={`p-3 rounded-lg border ${confStyle?.border || 'border-gray-200'} ${confStyle?.bg || 'bg-white'}`}>
+      {/* Field Header */}
+      <div className="flex items-start gap-3">
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 mb-1">
+            <label className="text-sm font-medium text-gray-700">
+              {formatFieldName(fieldKey)}
+            </label>
+            
+            {/* Prominent confidence badge */}
+            {confidence !== undefined && (
+              <div className={`flex items-center gap-1 px-2 py-0.5 rounded ${confStyle?.bg} border ${confStyle?.border}`}>
+                <span className="text-xs">{confStyle?.icon}</span>
+                <span className={`text-xs font-bold ${confStyle?.color}`}>
+                  {Math.round(confidence * 100)}%
+                </span>
+              </div>
+            )}
+
+            {/* Guidance indicator */}
+            {hasGuidance && (
+              <button
+                onClick={() => setShowGuidance(!showGuidance)}
+                className="p-1 text-blue-600 hover:bg-blue-50 rounded transition-colors"
+                title="Show extraction guidance"
+              >
+                <HelpCircle className="w-4 h-4" />
+              </button>
+            )}
+          </div>
+
+          {/* Field Value or Editor */}
+          {isEditing ? (
+            <div className="space-y-2">
+              <input
+                type="text"
+                value={editValue}
+                onChange={(e) => setEditValue(e.target.value)}
+                className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                autoFocus
+              />
+              <div className="flex gap-2">
+                <button
+                  onClick={handleSave}
+                  className="px-3 py-1 text-xs font-medium text-white bg-blue-600 rounded hover:bg-blue-700"
+                >
+                  Save
+                </button>
+                <button
+                  onClick={handleCancel}
+                  className="px-3 py-1 text-xs font-medium text-gray-700 bg-white border border-gray-300 rounded hover:bg-gray-50"
+                >
+                  Cancel
+                </button>
+              </div>
             </div>
+          ) : (
+            <p className="text-sm text-gray-900 break-words">{String(value)}</p>
           )}
         </div>
 
-        {isEditing ? (
-          <div className="space-y-2">
-            <input
-              type="text"
-              value={editValue}
-              onChange={(e) => setEditValue(e.target.value)}
-              className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-              autoFocus
-            />
-            <div className="flex gap-2">
-              <button
-                onClick={handleSave}
-                className="px-3 py-1 text-xs font-medium text-white bg-blue-600 rounded hover:bg-blue-700"
-              >
-                Save
-              </button>
-              <button
-                onClick={handleCancel}
-                className="px-3 py-1 text-xs font-medium text-gray-700 bg-white border border-gray-300 rounded hover:bg-gray-50"
-              >
-                Cancel
-              </button>
-            </div>
-          </div>
-        ) : (
-          <p className="text-sm text-gray-900 break-words">{String(value)}</p>
+        {/* Edit button */}
+        {onEdit && !isEditing && (
+          <button
+            onClick={() => setIsEditing(true)}
+            className="p-1.5 text-gray-400 hover:text-gray-600 rounded hover:bg-gray-100 transition-colors"
+            title="Edit value"
+          >
+            <Edit className="w-4 h-4" />
+          </button>
         )}
       </div>
 
-      {onEdit && !isEditing && (
-        <button
-          onClick={() => setIsEditing(true)}
-          className="p-1.5 text-gray-400 hover:text-gray-600 rounded hover:bg-gray-100 transition-colors"
-          title="Edit value"
-        >
-          <Edit className="w-4 h-4" />
-        </button>
+      {/* Inline Guidance Panel */}
+      {showGuidance && hasGuidance && (
+        <div className="mt-3 pt-3 border-t border-gray-200 space-y-2">
+          {/* Hint */}
+          {hint && (
+            <div className="flex items-start gap-2 p-2 bg-blue-50 rounded-lg">
+              <Lightbulb className="w-4 h-4 text-blue-600 flex-shrink-0 mt-0.5" />
+              <div className="flex-1">
+                <p className="text-xs font-medium text-blue-900 mb-0.5">Hint</p>
+                <p className="text-xs text-blue-700">{hint}</p>
+              </div>
+            </div>
+          )}
+
+          {/* Issues */}
+          {issues.length > 0 && (
+            <div className="flex items-start gap-2 p-2 bg-yellow-50 rounded-lg">
+              <AlertCircle className="w-4 h-4 text-yellow-600 flex-shrink-0 mt-0.5" />
+              <div className="flex-1">
+                <p className="text-xs font-medium text-yellow-900 mb-1">Issues Found</p>
+                <ul className="list-disc list-inside space-y-0.5">
+                  {issues.map((issue, idx) => (
+                    <li key={idx} className="text-xs text-yellow-700">{issue}</li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+          )}
+
+          {/* Suggested Fix */}
+          {suggestedFix && (
+            <div className="flex items-start gap-2 p-2 bg-green-50 rounded-lg">
+              <Info className="w-4 h-4 text-green-600 flex-shrink-0 mt-0.5" />
+              <div className="flex-1">
+                <p className="text-xs font-medium text-green-900 mb-1">Suggested Fix</p>
+                <p className="text-xs text-green-700 font-mono mb-2">{suggestedFix}</p>
+                <button
+                  onClick={handleApplySuggestion}
+                  className="px-2 py-1 text-xs font-medium text-green-700 bg-green-100 hover:bg-green-200 rounded transition-colors"
+                >
+                  Apply Suggestion
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
       )}
     </div>
   )
@@ -465,7 +554,10 @@ export function CompactExtractionResults({
 }
 
 // Helper functions
-function groupDataByCategory(data: Record<string, unknown>): Record<string, Array<{
+function groupDataByCategory(
+  data: Record<string, unknown>,
+  fieldConfidence?: Record<string, number>
+): Record<string, Array<{
   key: string
   value: string | number | boolean
   confidence?: number
@@ -486,10 +578,11 @@ function groupDataByCategory(data: Record<string, unknown>): Record<string, Arra
     'Property Details': [/property/i, /building/i, /structure/i, /construction/i],
   }
 
-  // Categorize each field
-  for (const [key, value] of Object.entries(data)) {
+  // Flatten nested objects and categorize
+  const flattenedFields = flattenObject(data)
+  
+  for (const [key, value] of flattenedFields) {
     if (typeof value === 'object' && value !== null) {
-      // Skip nested objects for now
       continue
     }
 
@@ -502,6 +595,7 @@ function groupDataByCategory(data: Record<string, unknown>): Record<string, Arra
         grouped[category].push({
           key,
           value: value as string | number | boolean,
+          confidence: fieldConfidence?.[key]
         })
         assigned = true
         break
@@ -516,6 +610,7 @@ function groupDataByCategory(data: Record<string, unknown>): Record<string, Arra
       grouped['Other Information'].push({
         key,
         value: value as string | number | boolean,
+        confidence: fieldConfidence?.[key]
       })
     }
   }
@@ -532,18 +627,19 @@ function formatCategoryName(category: string): string {
 
 function formatFieldName(key: string): string {
   return key
-    .split('_')
+    .split(/[_.]/)
     .map(word => word.charAt(0).toUpperCase() + word.slice(1))
     .join(' ')
 }
-function flattenObject(obj: Record<string, string | number | boolean>, prefix: string = ''): Array<[string, unknown]> {
+
+function flattenObject(obj: Record<string, unknown>, prefix: string = ''): Array<[string, unknown]> {
   const result: Array<[string, unknown]> = []
   
   for (const [key, value] of Object.entries(obj)) {
     const path = prefix ? `${prefix}.${key}` : key
     
     if (value && typeof value === 'object' && !Array.isArray(value)) {
-      result.push(...flattenObject(value, path))
+      result.push(...flattenObject(value as Record<string, unknown>, path))
     } else {
       result.push([path, value])
     }
@@ -551,6 +647,7 @@ function flattenObject(obj: Record<string, string | number | boolean>, prefix: s
     
   return result
 }
+
 function formatValue(value: string | number | boolean): string {
   if (typeof value === 'boolean') {
     return value ? 'Yes' : 'No'

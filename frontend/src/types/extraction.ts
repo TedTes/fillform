@@ -25,7 +25,12 @@ export interface ExtractionResult {
     extraction_date?: string
     pipeline?: Record<string, unknown>
     low_confidence_count?: number 
+    fields_with_hints?: number
+  fields_with_issues?: number
   }
+  field_hints?: Record<string, string> 
+extraction_issues?: Record<string, string[]>  
+suggested_fixes?: Record<string, string>  
   field_confidence?: Record<string, number>  
 }
   
