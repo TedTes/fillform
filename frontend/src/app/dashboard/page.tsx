@@ -5,7 +5,7 @@ import { Upload as UpIcon, Download as DownIcon,FolderIcon } from 'lucide-react'
 
 import { useRouter } from 'next/navigation'
 import type { Folder, InputFile, OutputFile,Client,Submission } from '@/types'
-import type { ClassificationResult } from '@/types/extraction'
+import type { ClassificationResult, ExtractionResult } from '@/types/extraction'
 import ClassificationModal from '@/components/ClassificationModal'
 import FolderPanel from '@/components/FolderPanel'
 import InputFilesSection from '@/components/InputFilesSection'
@@ -15,6 +15,8 @@ import useToast from '@/hooks/useToast'
 import PdfPreviewModal from '@/components/PdfPreviewModal'
 import SubmissionTemplateModal from '@/components/SubmissionTemplateModal'
 import { getInputPreviewUrl, getOutputPreviewUrl } from '@/lib/api-client'
+import ExtractionResultsModal from '@/components/ExtractionResultsModal'
+import { getSubmissionData } from '@/lib/api-client'
 
 import {
   getFolders,
@@ -43,6 +45,17 @@ export default function Home() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
 
+  const [extractionModal, setExtractionModal] = useState<{
+    isOpen: boolean
+    fileId: string
+    filename: string
+    result: ExtractionResult | null
+  }>({
+    isOpen: false,
+    fileId: '',
+    filename: '',
+    result: null,
+  })
   const [isTemplateModalOpen, setIsTemplateModalOpen] = useState(false)
   const [selectedClientId, setSelectedClientId] = useState<string | null>(null)
   const [selectedClientName, setSelectedClientName] = useState<string>('')
@@ -354,15 +367,31 @@ const handleCreateSubmissionWithTemplate = async (
       toast.error('Failed to rename folder')
     }
   }
-  const handleViewExtraction = (fileId: string) => {
+  const handleViewExtraction = async (fileId: string) => {
     const file = inputFiles.find(f => f.id === fileId)
     if (!file) return
     
-    // TODO: Show extraction results modal
-    toast.info(`Viewing extraction for ${file.filename}`)
-    // For now, just show a toast. Later TODO:
-    // 1. Fetch extraction data from backend
-    // 2. Show ExtractionResultsModal
+    try {
+      // Fetch extraction data with field confidence
+      const extractionData = await getSubmissionData(fileId)
+      
+      // Show extraction results modal
+      setExtractionModal({
+        isOpen: true,
+        fileId: fileId,
+        filename: file.filename,
+        result: {
+          success: true,
+          data: extractionData.data,
+          confidence: extractionData.confidence,
+          field_confidence: extractionData.field_confidence,
+          warnings: extractionData.warnings
+        }
+      })
+    } catch (err) {
+      console.error('Failed to load extraction data:', err)
+      toast.error(`Failed to load extraction data for ${file.filename}`)
+    }
   }
   const handleDelete = async (folderId: string) => {
     const prev = folders
@@ -869,6 +898,24 @@ const handleCreateSubmissionWithTemplate = async (
   clientName={selectedClientName}
   onSubmit={handleCreateSubmissionWithTemplate}
 />
+{/* Extraction Results Modal */}
+{extractionModal.result && (
+  <ExtractionResultsModal
+    isOpen={extractionModal.isOpen}
+    onClose={() => setExtractionModal({
+      isOpen: false,
+      fileId: '',
+      filename: '',
+      result: null
+    })}
+    filename={extractionModal.filename}
+    result={extractionModal.result}
+    onEdit={(field, value) => {
+      // TODO: Implement edit functionality
+      console.log('Edit field:', field, value)
+    }}
+  />
+)}
     </div>
   )
 

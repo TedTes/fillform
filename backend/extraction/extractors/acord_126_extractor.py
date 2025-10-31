@@ -116,8 +116,11 @@ class Acord126Extractor(IExtractor):
             # Step 3: Map to canonical JSON
             canonical_json = self.mapper.map_to_canonical(raw_fields)
             
-            # Step 4: Calculate confidence and collect warnings
-            confidence = self._calculate_confidence(raw_fields, canonical_json)
+            # Step 4: Calculate confidence
+            overall_confidence, field_confidence = self._calculate_confidence_with_fields(
+                raw_fields, 
+                canonical_json
+            )
             warnings = self._collect_warnings(raw_fields, canonical_json)
             
             # Step 5: Build metadata
@@ -125,26 +128,26 @@ class Acord126Extractor(IExtractor):
                 "total_fields_extracted": len(raw_fields),
                 "form_type": self.get_supported_form_type(),
                 "pdf_path": pdf_path,
-                "pdf_filename": os.path.basename(pdf_path)
+                "pdf_filename": os.path.basename(pdf_path),
+                "low_confidence_count": len([c for c in field_confidence.values() if c < 0.7])
             }
             
             # Step 6: Return result
             return ExtractionResult(
                 json=canonical_json,
-                confidence=confidence,
+                confidence=overall_confidence,
                 warnings=warnings,
-                metadata=metadata
+                metadata=metadata,
+                field_confidence=field_confidence
             )
             
         except ValueError as e:
-            # Validation or parsing error
             return ExtractionResult(
                 json={},
                 confidence=0.0,
                 error=str(e)
             )
         except Exception as e:
-            # Unexpected error
             return ExtractionResult(
                 json={},
                 confidence=0.0,
@@ -201,6 +204,88 @@ class Acord126Extractor(IExtractor):
         confidence = min(base_confidence + field_bonus, 1.0)
         
         return round(confidence, 2)
+   
+    def calculate_field_confidence(field_path: str, value: Any) -> float:
+        """Calculate confidence for a single field."""
+        if not value or value == "":
+            return 0.0
+        
+        # Base confidence for having a value
+        conf = 0.6
+        
+        # Bonus for longer strings (more likely to be complete)
+        if isinstance(value, str):
+            if len(value) > 20:
+                conf += 0.2
+            elif len(value) > 5:
+                conf += 0.1
+        
+        # Bonus for critical fields
+        critical_fields = [
+            "applicant.business_name",
+            "applicant.mailing_address",
+            "limits.each_occurrence",
+            "limits.general_aggregate"
+        ]
+        if field_path in critical_fields:
+            conf += 0.1
+        
+        # Pattern matching bonuses
+        if isinstance(value, str):
+            import re
+            # Phone number pattern
+            if re.match(r'^\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}$', value):
+                conf += 0.1
+            # Email pattern
+            if re.match(r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$', value):
+                conf += 0.1
+            # Date pattern
+            if re.match(r'^\d{1,2}[/-]\d{1,2}[/-]\d{2,4}$', value):
+                conf += 0.1
+            # Money pattern
+            if re.match(r'^\$?[\d,]+(\.\d{2})?$', value):
+                conf += 0.1
+        
+        return min(conf, 1.0)
+
+    # Traverse canonical JSON and calculate confidence for each leaf field
+    def traverse(obj: Any, path: str = ""):
+        if isinstance(obj, dict):
+            for key, value in obj.items():
+                new_path = f"{path}.{key}" if path else key
+                traverse(value, new_path)
+        elif isinstance(obj, list):
+            for i, item in enumerate(obj):
+                traverse(item, f"{path}[{i}]")
+        else:
+            # Leaf value - calculate confidence
+            field_confidence[path] = calculate_field_confidence(path, obj)
+    
+        traverse(canonical_json)
+        
+        # Calculate overall confidence (average of field confidences)
+        if field_confidence:
+            overall_confidence = sum(field_confidence.values()) / len(field_confidence)
+        else:
+            overall_confidence = 0.0
+        
+        # Apply critical field weighting
+        critical_fields = [
+            "applicant.business_name",
+            "limits.each_occurrence",
+            "limits.general_aggregate"
+        ]
+        
+        critical_found = sum(
+            1 for field in critical_fields 
+            if field_confidence.get(field, 0) > 0.5
+        )
+        critical_ratio = critical_found / len(critical_fields)
+        
+        # Blend overall confidence with critical field presence
+        final_confidence = (overall_confidence * 0.7) + (critical_ratio * 0.3)
+        
+        return round(final_confidence, 2), field_confidence
     
     def _collect_warnings(
         self,

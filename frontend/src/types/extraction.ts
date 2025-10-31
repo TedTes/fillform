@@ -13,19 +13,21 @@ export interface ClassificationResult {
   classified_at?: string
 }
   
-  export interface ExtractionResult {
-    success: boolean
-    data: Record<string, unknown>
-    confidence: number
-    warnings?: string[]
-    errors?: string[]
-    metadata?: {
-      extractor_used?: string
-      document_type?: string
-      extraction_date?: string
-      pipeline?: Record<string, unknown>
-    }
+export interface ExtractionResult {
+  success: boolean
+  data: Record<string, unknown>
+  confidence: number
+  warnings?: string[]
+  errors?: string[]
+  metadata?: {
+    extractor_used?: string
+    document_type?: string
+    extraction_date?: string
+    pipeline?: Record<string, unknown>
+    low_confidence_count?: number 
   }
+  field_confidence?: Record<string, number>  
+}
   
   export interface UploadedExtractionFile {
     id: string

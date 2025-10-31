@@ -901,3 +901,33 @@ export async function downloadBatchResults(
     handleApiError(error)
   }
 }
+
+
+/**
+ * Get submission extraction data with field confidence
+ */
+export async function getSubmissionData(submissionId: string): Promise<{
+  data: Record<string, unknown>
+  confidence: number
+  field_confidence: Record<string, number>
+  warnings?: string[]
+}> {
+  try {
+    const response = await api.get(`/submissions/${submissionId}`)
+    
+    if (!response.data.success) {
+      throw new Error(response.data.error || 'Failed to get submission')
+    }
+    
+    const submission = response.data.submission
+    
+    return {
+      data: submission.data || {},
+      confidence: submission.confidence || 0,
+      field_confidence: submission.field_confidence || {},
+      warnings: submission.warnings || []
+    }
+  } catch (error) {
+    handleApiError(error)
+  }
+}

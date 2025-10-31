@@ -178,13 +178,13 @@ def batch_fill_pdfs():
 @submission_bp.route('/submissions/<submission_id>', methods=['GET'])
 def get_submission(submission_id):
     """
-    Get submission data.
+    Get submission data with field-level confidence.
     
     Args:
         submission_id: Submission identifier
     
     Returns:
-        JSON with submission details
+        JSON with submission details including field confidence
     """
     try:
         submission = submission_service.get_submission(submission_id)
@@ -192,9 +192,23 @@ def get_submission(submission_id):
         if not submission:
             return jsonify({'error': 'Submission not found'}), 404
         
+        # Load field confidence if available
+        data_path = os.path.join('storage/data', f"{submission_id}.json")
+        metadata_path = os.path.join('storage/data', f"{submission_id}_meta.json")
+        
+        field_confidence = {}
+        if os.path.exists(metadata_path):
+            import json
+            with open(metadata_path, 'r') as f:
+                metadata = json.load(f)
+                field_confidence = metadata.get('field_confidence', {})
+        
         return jsonify({
             'success': True,
-            'submission': submission
+            'submission': {
+                **submission,
+                'field_confidence': field_confidence
+            }
         }), 200
         
     except Exception as e:

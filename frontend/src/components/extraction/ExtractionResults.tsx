@@ -14,7 +14,10 @@ import {
   User,
   Phone,
   Mail,
-  MapPin
+  Filter,
+  AlertCircle,
+  MapPin,
+  Edit
 } from 'lucide-react'
 import type { ExtractionResult } from '@/types/extraction'
 
@@ -26,6 +29,24 @@ interface ExtractionResultsProps {
   className?: string
 }
 
+// Data Section Component
+interface DataSectionProps {
+  category: string
+  fields: Array<{ key: string; value: string | number | boolean; confidence?: number }>
+  isExpanded: boolean
+  onToggle: () => void
+  onEdit?: (field: string, value: string) => void
+  showingFiltered:boolean
+}
+
+// Individual Data Field Component
+interface DataFieldProps {
+  fieldKey: string
+  value: string | number | boolean
+  confidence?: number
+  onEdit?: (field: string, value: string) => void
+}
+
 export default function ExtractionResults({
   result,
   filename,
@@ -34,7 +55,9 @@ export default function ExtractionResults({
   className = '',
 }: ExtractionResultsProps) {
   const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set(['summary']))
-
+  const [showLowConfidenceOnly, setShowLowConfidenceOnly] = useState(false)
+  const [confidenceThreshold, setConfidenceThreshold] = useState(0.7) 
+  
   const toggleSection = (section: string) => {
     setExpandedSections(prev => {
       const newSet = new Set(prev)
@@ -61,6 +84,43 @@ export default function ExtractionResults({
     }
     return { color: 'text-orange-700', bgColor: 'bg-orange-50', label: 'Low' }
   }
+  const getConfidenceColorClass = (confidence?: number): string => {
+    if (confidence === undefined) return 'bg-gray-50 border-gray-200'
+    if (confidence >= 0.9) return 'bg-green-50 border-green-200'
+    if (confidence >= 0.7) return 'bg-blue-50 border-blue-200'
+    if (confidence >= 0.5) return 'bg-yellow-50 border-yellow-200'
+    return 'bg-orange-50 border-orange-200'
+  }
+  const filterFieldsByConfidence = (
+    fields: Array<{ key: string; value: string | number | boolean; confidence?: number }>
+  ) => {
+    if (!showLowConfidenceOnly) return fields
+    
+    return fields.filter(f => 
+      f.confidence !== undefined && f.confidence < confidenceThreshold
+    )
+  }
+
+  const getLowConfidenceStats = () => {
+    const allFields = Object.entries(result.data || {}).flatMap(([category, value]) =>
+      flattenObject(value as Record<string, string | number | boolean>, category)
+    )
+    
+    const lowConfFields = allFields.filter(([path]) => {
+      const conf = result.field_confidence?.[path]
+      return conf !== undefined && conf < confidenceThreshold
+    })
+    
+    return {
+      total: allFields.length,
+      lowConfidence: lowConfFields.length,
+      percentage: allFields.length > 0 
+        ? Math.round((lowConfFields.length / allFields.length) * 100)
+        : 0
+    }
+  }
+  const stats = getLowConfidenceStats()
+
 
   const confidenceStyle = getConfidenceStyle(result.confidence)
 
@@ -91,8 +151,59 @@ export default function ExtractionResults({
             </div>
           </div>
         </div>
-      </div>
+         {/* Low Confidence Alert */}
+         {stats.lowConfidence > 0 && (
+          <div className="mt-3 flex items-start gap-2 px-3 py-2 bg-yellow-100 border border-yellow-200 rounded-lg">
+            <AlertCircle className="w-4 h-4 text-yellow-700 flex-shrink-0 mt-0.5" />
+            <div className="flex-1">
+              <p className="text-sm font-medium text-yellow-800">
+                {stats.lowConfidence} field{stats.lowConfidence !== 1 ? 's' : ''} below {Math.round(confidenceThreshold * 100)}% confidence
+              </p>
+              <p className="text-xs text-yellow-700 mt-0.5">
+                These fields may need manual review
+              </p>
+            </div>
+          </div>
+        )}
+ 
+{/* Filter Controls */}
+{stats.lowConfidence > 0 && (
+        <div className="px-6 py-3 bg-gray-50 border-b border-gray-200">
+          <div className="flex items-center justify-between gap-4">
+            <button
+              onClick={() => setShowLowConfidenceOnly(!showLowConfidenceOnly)}
+              className={`flex items-center gap-2 px-3 py-1.5 text-sm font-medium rounded-lg transition-colors ${
+                showLowConfidenceOnly
+                  ? 'bg-yellow-600 text-white'
+                  : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'
+              }`}
+            >
+              <Filter className="w-4 h-4" />
+              {showLowConfidenceOnly ? 'Show All Fields' : 'Show Low Confidence Only'}
+              {showLowConfidenceOnly && (
+                <span className="ml-1 px-1.5 py-0.5 bg-yellow-700 text-white text-xs rounded">
+                  {stats.lowConfidence}
+                </span>
+              )}
+            </button>
 
+            <div className="flex items-center gap-2">
+              <label className="text-xs text-gray-600">Threshold:</label>
+              <select
+                value={confidenceThreshold}
+                onChange={(e) => setConfidenceThreshold(parseFloat(e.target.value))}
+                className="px-2 py-1 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="0.9">90%</option>
+                <option value="0.8">80%</option>
+                <option value="0.7">70%</option>
+                <option value="0.6">60%</option>
+                <option value="0.5">50%</option>
+              </select>
+            </div>
+          </div>
+        </div>
+      )}
       {/* Warnings/Errors */}
       {((result.warnings && result.warnings.length > 0) || (result.errors && result.errors.length > 0)) && (
         <div className="px-6 py-4 space-y-2 bg-yellow-50 border-b border-yellow-100">
@@ -113,16 +224,24 @@ export default function ExtractionResults({
 
       {/* Extracted Data Sections */}
       <div className="divide-y divide-gray-200">
-        {Object.entries(groupedData).map(([category, fields]) => (
-          <DataSection
-            key={category}
-            category={category}
-            fields={fields}
-            isExpanded={expandedSections.has(category)}
-            onToggle={() => toggleSection(category)}
-            onEdit={onEdit}
-          />
-        ))}
+        {Object.entries(groupedData).map(([category, fields]) => {
+           const filteredFields = filterFieldsByConfidence(fields)
+            // Skip empty sections when filtering
+          if (showLowConfidenceOnly && filteredFields.length === 0) {
+            return null
+          }
+          return (
+            <DataSection
+              key={category}
+              category={category}
+              fields={filteredFields} 
+              isExpanded={expandedSections.has(category)}
+              onToggle={() => toggleSection(category)}
+              onEdit={onEdit}
+              showingFiltered={showLowConfidenceOnly}
+            />
+          )
+          })}
       </div>
 
       {/* Metadata */}
@@ -167,19 +286,12 @@ export default function ExtractionResults({
         </div>
       )}
     </div>
+    </div>
   )
 }
 
-// Data Section Component
-interface DataSectionProps {
-  category: string
-  fields: Array<{ key: string; value: string | number | boolean; confidence?: number }>
-  isExpanded: boolean
-  onToggle: () => void
-  onEdit?: (field: string, value: string) => void
-}
 
-function DataSection({ category, fields, isExpanded, onToggle, onEdit }: DataSectionProps) {
+function DataSection({ category, fields, isExpanded, onToggle, onEdit,showingFiltered = false  }: DataSectionProps) {
   const getCategoryIcon = (cat: string) => {
     const lower = cat.toLowerCase()
     if (lower.includes('applicant') || lower.includes('contact')) return User
@@ -206,6 +318,7 @@ function DataSection({ category, fields, isExpanded, onToggle, onEdit }: DataSec
           </h3>
           <span className="text-xs text-gray-500">
             ({fields.length} field{fields.length !== 1 ? 's' : ''})
+            {showingFiltered && <span className="ml-1 text-yellow-600">filtered</span>}
           </span>
         </div>
         
@@ -233,13 +346,6 @@ function DataSection({ category, fields, isExpanded, onToggle, onEdit }: DataSec
   )
 }
 
-// Individual Data Field Component
-interface DataFieldProps {
-  fieldKey: string
-  value: string | number | boolean
-  confidence?: number
-  onEdit?: (field: string, value: string) => void
-}
 
 function DataField({ fieldKey, value, confidence, onEdit }: DataFieldProps) {
   const [isEditing, setIsEditing] = useState(false)
@@ -257,64 +363,73 @@ function DataField({ fieldKey, value, confidence, onEdit }: DataFieldProps) {
     setIsEditing(false)
   }
 
-  const getConfidenceColor = (conf: number): string => {
-    if (conf >= 0.8) return 'text-green-600'
-    if (conf >= 0.6) return 'text-yellow-600'
-    return 'text-orange-600'
+  // More prominent confidence display
+  const getConfidenceStyle = (conf: number) => {
+    if (conf >= 0.9) return { color: 'text-green-600', bg: 'bg-green-50', border: 'border-green-200', icon: '✓' }
+    if (conf >= 0.7) return { color: 'text-blue-600', bg: 'bg-blue-50', border: 'border-blue-200', icon: '✓' }
+    if (conf >= 0.5) return { color: 'text-yellow-600', bg: 'bg-yellow-50', border: 'border-yellow-300', icon: '⚠' }
+    return { color: 'text-orange-600', bg: 'bg-orange-50', border: 'border-orange-300', icon: '⚠' }
   }
 
+  const confStyle = confidence !== undefined ? getConfidenceStyle(confidence) : null
+
   return (
-    <div className="flex items-start gap-3">
+    <div className={`flex items-start gap-3 p-3 rounded-lg border ${confStyle?.border || 'border-gray-200'} ${confStyle?.bg || 'bg-white'}`}>
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2 mb-1">
           <label className="text-sm font-medium text-gray-700">
             {formatFieldName(fieldKey)}
           </label>
+          
+          {/*  Prominent confidence badge */}
           {confidence !== undefined && (
-            <span className={`text-xs font-semibold ${getConfidenceColor(confidence)}`}>
-              {Math.round(confidence * 100)}%
-            </span>
+            <div className={`flex items-center gap-1 px-2 py-0.5 rounded ${confStyle?.bg} border ${confStyle?.border}`}>
+              <span className="text-xs">{confStyle?.icon}</span>
+              <span className={`text-xs font-bold ${confStyle?.color}`}>
+                {Math.round(confidence * 100)}%
+              </span>
+            </div>
           )}
         </div>
 
         {isEditing ? (
-          <div className="flex items-center gap-2">
+          <div className="space-y-2">
             <input
               type="text"
               value={editValue}
               onChange={(e) => setEditValue(e.target.value)}
-              className="flex-1 px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
               autoFocus
             />
-            <button
-              onClick={handleSave}
-              className="px-3 py-2 text-xs font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700"
-            >
-              Save
-            </button>
-            <button
-              onClick={handleCancel}
-              className="px-3 py-2 text-xs font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
-            >
-              Cancel
-            </button>
+            <div className="flex gap-2">
+              <button
+                onClick={handleSave}
+                className="px-3 py-1 text-xs font-medium text-white bg-blue-600 rounded hover:bg-blue-700"
+              >
+                Save
+              </button>
+              <button
+                onClick={handleCancel}
+                className="px-3 py-1 text-xs font-medium text-gray-700 bg-white border border-gray-300 rounded hover:bg-gray-50"
+              >
+                Cancel
+              </button>
+            </div>
           </div>
         ) : (
-          <div className="flex items-center gap-2">
-            <p className="text-sm text-gray-900 flex-1">
-              {formatValue(value)}
-            </p>
-            {onEdit && (
-              <button
-                onClick={() => setIsEditing(true)}
-                className="text-xs text-blue-600 hover:text-blue-700 font-medium"
-              >
-                Edit
-              </button>
-            )}
-          </div>
+          <p className="text-sm text-gray-900 break-words">{String(value)}</p>
         )}
       </div>
+
+      {onEdit && !isEditing && (
+        <button
+          onClick={() => setIsEditing(true)}
+          className="p-1.5 text-gray-400 hover:text-gray-600 rounded hover:bg-gray-100 transition-colors"
+          title="Edit value"
+        >
+          <Edit className="w-4 h-4" />
+        </button>
+      )}
     </div>
   )
 }
@@ -415,13 +530,27 @@ function formatCategoryName(category: string): string {
     .join(' ')
 }
 
-function formatFieldName(field: string): string {
-  return field
+function formatFieldName(key: string): string {
+  return key
     .split('_')
     .map(word => word.charAt(0).toUpperCase() + word.slice(1))
     .join(' ')
 }
-
+function flattenObject(obj: Record<string, string | number | boolean>, prefix: string = ''): Array<[string, unknown]> {
+  const result: Array<[string, unknown]> = []
+  
+  for (const [key, value] of Object.entries(obj)) {
+    const path = prefix ? `${prefix}.${key}` : key
+    
+    if (value && typeof value === 'object' && !Array.isArray(value)) {
+      result.push(...flattenObject(value, path))
+    } else {
+      result.push([path, value])
+    }
+  }
+    
+  return result
+}
 function formatValue(value: string | number | boolean): string {
   if (typeof value === 'boolean') {
     return value ? 'Yes' : 'No'
