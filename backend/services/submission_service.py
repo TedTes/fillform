@@ -5,7 +5,7 @@ Submission service - orchestrates extraction and filling workflow.
 import os
 import uuid
 import json
-from typing import Optional,Dict,Any
+from typing import Optional,Dict,Any,List
 from datetime import datetime
 from werkzeug.utils import secure_filename
 from extraction.extractors import Acord126Extractor
