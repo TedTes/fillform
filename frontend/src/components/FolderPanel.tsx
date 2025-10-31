@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { ChevronRight, ChevronDown, Folder as FolderIcon, FileText, Plus, X } from 'lucide-react'
+import { ChevronRight, ChevronDown, Folder as FolderIcon, FileText, Plus, X, CheckCircle, AlertCircle, Loader2 } from 'lucide-react'
 import type { Client, Submission } from '@/types'
 
 interface FolderPanelProps {
@@ -39,17 +39,96 @@ export default function FolderPanel({
     })
   }
 
+
   const getStatusBadge = (submission: Submission) => {
+    const fileCount = submission.file_count
+
+    // Processing states
+    if (submission.status === 'uploading' || submission.status === 'extracting') {
+      return (
+        <div className="flex items-center gap-1">
+          <Loader2 className="w-3 h-3 text-blue-500 animate-spin" />
+          <span className="text-xs text-blue-600">Processing</span>
+        </div>
+      )
+    }
+
+    // Error state
     if (submission.status === 'error') {
-      return <span className="w-2 h-2 bg-red-500 rounded-full" />
+      return (
+        <div className="flex items-center gap-1">
+          <AlertCircle className="w-3 h-3 text-red-500" />
+          <span className="text-xs text-red-600">Error</span>
+        </div>
+      )
     }
-    if (submission.status === 'ready' && submission.file_count > 0) {
-      return <span className="w-2 h-2 bg-green-500 rounded-full" />
+
+    // Ready state with files
+    if (submission.status === 'ready' && fileCount > 0) {
+      return (
+        <div className="flex items-center gap-1.5">
+          <span className="text-xs font-medium text-gray-600">({fileCount})</span>
+          <CheckCircle className="w-3 h-3 text-green-500" />
+        </div>
+      )
     }
-    if (submission.file_count > 0) {
-      return <span className="text-xs text-gray-500">({submission.file_count})</span>
+
+    // Filled/complete state
+    if (submission.status === 'filled' && fileCount > 0) {
+      return (
+        <div className="flex items-center gap-1.5">
+          <span className="text-xs font-medium text-gray-600">({fileCount})</span>
+          <span className="w-2 h-2 bg-green-500 rounded-full" />
+        </div>
+      )
     }
-    return null
+
+    // Has files but status is created
+    if (fileCount > 0) {
+      return (
+        <span className="text-xs font-medium text-gray-500">({fileCount})</span>
+      )
+    }
+
+    // Empty submission
+    return (
+      <span className="text-xs text-gray-400">(0)</span>
+    )
+  }
+
+  // ADDED: Get client-level badge (total files across all submissions)
+  const getClientBadge = (client: Client) => {
+    const submissions = client.submissions_detailed || []
+    const totalFiles = submissions.reduce((sum, sub) => sum + sub.file_count, 0)
+    
+    if (totalFiles === 0) return null
+    
+    const hasErrors = submissions.some(sub => sub.status === 'error')
+    const hasProcessing = submissions.some(sub => 
+      sub.status === 'uploading' || sub.status === 'extracting'
+    )
+    
+    if (hasErrors) {
+      return (
+        <div className="flex items-center gap-1">
+          <span className="text-xs text-gray-500">{totalFiles}</span>
+          <AlertCircle className="w-3 h-3 text-red-500" />
+        </div>
+      )
+    }
+    
+    if (hasProcessing) {
+      return (
+        <div className="flex items-center gap-1">
+          <span className="text-xs text-gray-500">{totalFiles}</span>
+          <Loader2 className="w-3 h-3 text-blue-500 animate-spin" />
+        </div>
+      )
+    }
+    
+    return (
+      <span className="text-xs text-gray-500">{totalFiles} files</span>
+    )
   }
 
   return (
@@ -110,7 +189,7 @@ export default function FolderPanel({
 
                 return (
                   <div key={client.client_id} className="space-y-1">
-                    {/* Client Row */}
+                    {/* Client Row  */}
                     <div className="group flex items-center gap-1">
                       <button
                         onClick={() => toggleClient(client.client_id)}
@@ -125,9 +204,10 @@ export default function FolderPanel({
                         <span className="text-sm font-medium text-gray-700 truncate flex-1">
                           {client.name}
                         </span>
-                        <span className="text-xs text-gray-400 flex-shrink-0">
-                          ({client.submission_count})
-                        </span>
+                        {/* Show client-level badge */}
+                        <div className="flex items-center gap-1.5 flex-shrink-0">
+                          {getClientBadge(client)}
+                        </div>
                       </button>
 
                       {/* New Submission Button */}
@@ -140,7 +220,7 @@ export default function FolderPanel({
                       </button>
                     </div>
 
-                    {/* Submissions */}
+                    {/* Submissions - with enhanced badges */}
                     {isExpanded && (
                       <div className="ml-6 space-y-0.5">
                         {submissions.length === 0 ? (
@@ -176,7 +256,10 @@ export default function FolderPanel({
                                 >
                                   {submission.name}
                                 </span>
-                                {getStatusBadge(submission)}
+                                {/*  Enhanced status badge */}
+                                <div className="flex-shrink-0">
+                                  {getStatusBadge(submission)}
+                                </div>
                               </button>
                             )
                           })

@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Upload as UpIcon, Download as DownIcon,FolderOpen,FolderIcon } from 'lucide-react'
+import { Upload as UpIcon, Download as DownIcon,FolderIcon } from 'lucide-react'
 
 import { useRouter } from 'next/navigation'
 import type { Folder, InputFile, OutputFile,Client,Submission } from '@/types'
@@ -199,7 +199,41 @@ const handleCreateSubmissionWithTemplate = async (
       }))
     )
   }
-
+  const refreshClientBadges = async () => {
+    // Re-fetch clients to update badges in sidebar
+    try {
+      const res = await fetch('/api/clients')
+      const data = await res.json()
+      if (data.success) {
+        setClients(data.clients)
+        
+        // Update active submission with latest data
+        if (activeSubmission) {
+          const updatedClient = data.clients.find(
+            (c: Client) => c.client_id === activeSubmission.client_id
+          )
+          if (updatedClient?.submissions_detailed) {
+            const updatedSubmission = updatedClient.submissions_detailed.find(
+              (s: Submission) => s.submission_id === activeSubmission.submission_id
+            )
+            if (updatedSubmission) {
+              setActiveSubmission(updatedSubmission)
+              // Also update activeFolder for compatibility
+              setActiveFolder({
+                folder_id: updatedSubmission.submission_id,
+                name: updatedSubmission.name,
+                created_at: updatedSubmission.created_at,
+                file_count: updatedSubmission.file_count,
+              })
+            }
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Failed to refresh badges:', error)
+    }
+  }
+  
   const loadFolders = async () => {
     try {
       setIsLoading(true)
@@ -326,7 +360,7 @@ const handleCreateSubmissionWithTemplate = async (
     
     // TODO: Show extraction results modal
     toast.info(`Viewing extraction for ${file.filename}`)
-    // For now, just show a toast. Later you can:
+    // For now, just show a toast. Later TODO:
     // 1. Fetch extraction data from backend
     // 2. Show ExtractionResultsModal
   }
@@ -438,6 +472,7 @@ const handleCreateSubmissionWithTemplate = async (
   
       toast.success(`${files.length} file${files.length > 1 ? 's' : ''} uploaded successfully`)
       loadFolders()
+      await refreshClientBadges() 
     }
   
     input.click()
@@ -489,6 +524,7 @@ const handleCreateSubmissionWithTemplate = async (
       setOutputFiles((prev) => prev.filter((f) => f.inputFileId !== fileId))
       toast.info(`File "${file.filename}" removed`)
       updateFolderCounts()
+      await refreshClientBadges()
     } catch (err) {
       console.error('Failed to delete file:', err)
       toast.error('Failed to delete file')
@@ -695,7 +731,7 @@ const handleCreateSubmissionWithTemplate = async (
             {/* Input Files */}
             <InputFilesSection
   files={activeFolderInputs}
-  activeSubmission={activeSubmission}  // ADDED THIS LINE
+  activeSubmission={activeSubmission}
   onUpload={handleUploadFiles}
   onRemove={handleRemoveFile}
   onPreview={handlePreviewInput}
