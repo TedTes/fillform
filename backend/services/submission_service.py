@@ -41,19 +41,24 @@ class SubmissionService:
         self.extractor = Acord126Extractor()
         self.filler = Acord126Filler()
     
-    def upload_and_extract(self, file, folder_id: str = None):
+    def upload_and_extract(self, file, folder_id: str = None, progress_callback=None):
         """
-        Upload PDF and extract data.
+        Upload PDF and extract data with progress tracking.
         
         Args:
             file: FileStorage object from Flask request
             folder_id: Optional folder ID to store in
+            progress_callback: Optional callback for progress updates
         
         Returns:
             Dictionary with submission_id, extracted data, and metadata
         """
         # Generate unique submission ID
         submission_id = str(uuid.uuid4())
+        
+        # Progress: 0% - Starting
+        if progress_callback:
+            progress_callback(submission_id, 0, 'starting', 'Initializing upload...')
         
         # Determine storage path
         if folder_id:
@@ -65,21 +70,47 @@ class SubmissionService:
             # Store in legacy uploads directory
             upload_dir = self.uploads_dir
         
+        # Progress: 10% - Saving file
+        if progress_callback:
+            progress_callback(submission_id, 10, 'uploading', 'Saving file...')
+        
         # Save uploaded file
         filename = secure_filename(file.filename)
         upload_path = os.path.join(upload_dir, f"{submission_id}_{filename}")
         file.save(upload_path)
         
+        # Progress: 30% - File saved
+        if progress_callback:
+            progress_callback(submission_id, 30, 'uploaded', 'File saved successfully')
+        
+        # Progress: 40% - Starting extraction
+        if progress_callback:
+            progress_callback(submission_id, 40, 'extracting', 'Analyzing document...')
+        
         # Extract data
         extraction_result = self.extractor.extract(upload_path)
         
+        # Progress: 70% - Extraction complete
+        if progress_callback:
+            progress_callback(submission_id, 70, 'extracting', 'Processing fields...')
+        
         if not extraction_result.is_successful():
+            if progress_callback:
+                progress_callback(submission_id, 100, 'error', f'Extraction failed: {extraction_result.error}')
             raise ValueError(f"Extraction failed: {extraction_result.error}")
+        
+        # Progress: 80% - Saving data
+        if progress_callback:
+            progress_callback(submission_id, 80, 'extracting', 'Saving extracted data...')
         
         # Save extracted JSON
         data_path = os.path.join(self.data_dir, f"{submission_id}.json")
         with open(data_path, 'w') as f:
             json.dump(extraction_result.json, f, indent=2)
+        
+        # Progress: 90% - Creating metadata
+        if progress_callback:
+            progress_callback(submission_id, 90, 'ready', 'Finalizing...')
         
         # Save submission metadata
         metadata = {
@@ -103,6 +134,10 @@ class SubmissionService:
             from services.folder_service import FolderService
             folder_service = FolderService()
             folder_service.add_submission(folder_id, submission_id, filename)
+        
+        # Progress: 100% - Complete
+        if progress_callback:
+            progress_callback(submission_id, 100, 'ready', 'Extraction complete')
         
         return {
             'submission_id': submission_id,

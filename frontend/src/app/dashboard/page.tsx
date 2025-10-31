@@ -416,41 +416,94 @@ const handleCreateSubmissionWithTemplate = async (
       toast.info(`Uploading ${files.length} file${files.length > 1 ? 's' : ''} to ${activeSubmission?.name}...`)
   
       for (const file of files) {
+        // Generate temp ID for this upload
+        const tempId = `temp-${Date.now()}-${Math.random()}`
+        
         try {
-          // Create temp entry
+          // Create temp entry with initial progress
           const temp: InputFile = {
-            id: `temp-${Date.now()}-${Math.random()}`,
+            id: tempId,
             folder_id: activeFolderId,
             filename: file.name,
             size: file.size,
             status: 'uploading',
             uploadedAt: new Date().toISOString(),
+            progress: 0,
+            progressMessage: 'Starting upload...',
           }
           setInputFiles((prev) => [...prev, temp])
+  
+          // Simulate progress updates during upload
+          const progressInterval = setInterval(() => {
+            setInputFiles((prev) =>
+              prev.map((f) => {
+                if (f.id !== tempId) return f
+                
+                const currentProgress = f.progress || 0
+                
+                // Upload phase (0-30%)
+                if (currentProgress < 30) {
+                  return {
+                    ...f,
+                    progress: Math.min(30, currentProgress + 10),
+                    progressMessage: 'Uploading file...',
+                    status: 'uploading' as const,
+                  }
+                }
+                
+                // Extraction phase (30-90%)
+                if (currentProgress < 90) {
+                  return {
+                    ...f,
+                    progress: Math.min(90, currentProgress + 5),
+                    progressMessage: currentProgress < 50 ? 'Analyzing document...' : 'Extracting fields...',
+                    status: 'extracting' as const,
+                  }
+                }
+                
+                return f
+              })
+            )
+          }, 500)
   
           // Upload with auto-classify
           const result = await uploadPdfToFolder(activeFolderId, file)
   
-          // Update file status
+          // Clear interval
+          clearInterval(progressInterval)
+  
+          // Update file status with final confidence
           setInputFiles((prev) =>
             prev.map((f) =>
-              f.id === temp.id
+              f.id === tempId
                 ? {
                     ...f,
                     id: result.submission_id,
                     status: 'ready',
                     confidence: result.extraction.confidence,
+                    progress: 100,
+                    progressMessage: 'Complete!',
                   }
                 : f
             )
           )
   
-         
+          // Remove progress indicators after a short delay
+          setTimeout(() => {
+            setInputFiles((prev) =>
+              prev.map((f) =>
+                f.id === result.submission_id
+                  ? { ...f, progress: undefined, progressMessage: undefined }
+                  : f
+              )
+            )
+          }, 1000)
+  
+          // Show classification modal
           if (result.submission_id) {
             try {
               const classification = await classifyDocument(result.submission_id)
               
-              // Show classification modal
               setClassificationModal({
                 isOpen: true,
                 filename: file.name,
@@ -459,20 +512,19 @@ const handleCreateSubmissionWithTemplate = async (
               })
             } catch (err) {
               console.warn('Classification failed:', err)
-              // Continue without classification
             }
           }
   
         } catch (err) {
           console.error('Upload failed:', err)
           toast.error(`Failed to upload ${file.name}`)
-          setInputFiles((prev) => prev.filter((f) => f.filename !== file.name))
+          setInputFiles((prev) => prev.filter((f) => f.id !== tempId))
         }
       }
   
       toast.success(`${files.length} file${files.length > 1 ? 's' : ''} uploaded successfully`)
       loadFolders()
-      await refreshClientBadges() 
+      await refreshClientBadges()
     }
   
     input.click()

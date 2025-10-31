@@ -21,17 +21,18 @@ export interface Folder {
   submissions_detailed?: SubmissionDetail[]
 }
 
-
-  export interface InputFile {
-    id: string
-    folder_id: string
-    filename: string
-    size: number
-    status: 'uploading' | 'uploaded' | 'extracting' | 'ready' | 'error' | 'filled'
-    uploadedAt: string
-    confidence?: number
-    document_type?: string
-  }
+export interface InputFile {
+  id: string
+  folder_id: string
+  filename: string
+  size: number
+  status: 'uploading' | 'uploaded' | 'extracting' | 'ready' | 'error' | 'filled'
+  uploadedAt: string
+  confidence?: number
+  document_type?: string
+  progress?: number
+  progressMessage?: string  // "Uploading file...", "Extracting data...", etc.
+}
   
   export interface OutputFile {
     id: string
