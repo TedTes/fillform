@@ -14,6 +14,8 @@ from services.client_service import ClientService
 from lib.submission_templates import get_template, TEMPLATES
 from services.version_service import VersionService
 from services.comparison_service import ComparisonService
+from services.form_generator import FormGenerator
+
 class SubmissionService:
     """
     Service for managing submission workflow.
@@ -44,6 +46,7 @@ class SubmissionService:
         self.filler = Acord126Filler()
         self.version_service = VersionService(self.storage_dir)
         self.comparison_service = ComparisonService(self.storage_dir)
+        self.form_generator = FormGenerator()
     
     def upload_and_extract(self, file, folder_id: str = None, progress_callback=None):
         """
@@ -454,4 +457,42 @@ class SubmissionService:
         )
         
         return comparison
+
+
+    def generate_form(
+        self,
+        submission_id: str,
+        include_optional: bool = True
+    ) -> Dict[str, Any]:
+        """
+        Generate dynamic form for a submission.
+        
+        Args:
+            submission_id: Submission identifier
+            include_optional: Include optional fields
+            
+        Returns:
+            Form definition
+        """
+        submission = self.get_submission(submission_id)
+        if not submission:
+            raise ValueError("Submission not found")
+        
+        # Get template from metadata
+        template_id = submission.get('metadata', {}).get('template_id', 'custom')
+        
+        # Get current data
+        data = submission.get('data', {})
+        
+        # Generate form
+        form = self.form_generator.generate_form(
+            template_id=template_id,
+            data=data,
+            include_optional=include_optional
+        )
+        
+        return form
+    
+
+
     

@@ -910,3 +910,83 @@ def resolve_conflicts(submission_id):
         
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+
+
+
+@submission_bp.route('/submissions/<submission_id>/form', methods=['GET'])
+def get_submission_form(submission_id):
+    """
+    Get dynamic form for a submission.
+    
+    Query Parameters:
+        include_optional: Include optional fields (default: true)
+    
+    Returns:
+        JSON with form definition (sections and fields)
+    """
+    try:
+        include_optional = request.args.get('include_optional', 'true').lower() == 'true'
+        
+        form = submission_service.generate_form(
+            submission_id=submission_id,
+            include_optional=include_optional
+        )
+        
+        return jsonify({
+            'success': True,
+            'form': form
+        }), 200
+        
+    except ValueError as e:
+        return jsonify({'error': str(e)}), 404
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@submission_bp.route('/forms/templates', methods=['GET'])
+def list_form_templates():
+    """
+    List available form templates.
+    
+    Returns:
+        JSON with list of available templates
+    """
+    try:
+        from lib.submission_templates import list_templates
+        
+        templates = list_templates()
+        
+        return jsonify({
+            'success': True,
+            'templates': templates
+        }), 200
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@submission_bp.route('/forms/templates/<template_id>', methods=['GET'])
+def get_form_template(template_id):
+    """
+    Get details for a specific form template.
+    
+    Args:
+        template_id: Template identifier
+    
+    Returns:
+        JSON with template details
+    """
+    try:
+        from lib.submission_templates import get_template
+        
+        template = get_template(template_id)
+        
+        return jsonify({
+            'success': True,
+            'template': template.to_dict()
+        }), 200
+        
+    except ValueError as e:
+        return jsonify({'error': str(e)}), 404
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
