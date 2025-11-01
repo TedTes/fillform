@@ -12,11 +12,7 @@ import {
   HelpCircle,
   TrendingUp,
   CheckSquare,
-  Calendar,
-  ChevronLeft,
-  ChevronRight,
-  Menu,
-  X
+  Calendar
 } from 'lucide-react'
 
 // Import the interactive components
@@ -31,8 +27,6 @@ export type TabId = 'overview' | 'folders' | 'upload' | 'submissions' | 'history
 
 export default function MainLayout({ children }: MainLayoutProps) {
   const [activeTab, setActiveTab] = useState<TabId>('overview')
-  const [sidebarOpen, setSidebarOpen] = useState(true)
-  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false)
 
   const tabs = [
     {
@@ -80,253 +74,102 @@ export default function MainLayout({ children }: MainLayoutProps) {
   ]
 
   return (
-    <div className="min-h-screen bg-gray-50 flex">
-      {/* Collapsible Sidebar */}
-      <aside
-        className={`
-          hidden lg:flex flex-col
-          bg-white border-r border-gray-200
-          transition-all duration-300 ease-in-out
-          ${sidebarOpen ? 'w-80' : 'w-16'}
-        `}
-      >
-        {/* Sidebar Header */}
-        <div className="h-16 border-b border-gray-200 flex items-center justify-between px-4">
-          {sidebarOpen && (
-            <div className="flex items-center gap-2">
+    <div className="min-h-screen bg-gray-50">
+      {/* Header */}
+      <header className="bg-white border-b border-gray-200 sticky top-0 z-50">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex items-center justify-between h-16">
+            <div className="flex items-center gap-3">
               <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
                 <FileEdit className="w-5 h-5 text-white" />
               </div>
               <div>
-                <h2 className="text-sm font-bold text-gray-900">Quick Actions</h2>
-                <p className="text-xs text-gray-600">Shortcuts</p>
+                <h1 className="text-xl font-bold text-gray-900">AutoFil</h1>
+                <p className="text-xs text-gray-600">Smart Form Automation</p>
               </div>
             </div>
-          )}
-          <button
-            onClick={() => setSidebarOpen(!sidebarOpen)}
-            className="p-2 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100 transition-colors"
-          >
-            {sidebarOpen ? (
-              <ChevronLeft className="w-5 h-5" />
-            ) : (
-              <ChevronRight className="w-5 h-5" />
-            )}
-          </button>
-        </div>
 
-        {/* Sidebar Content */}
-        <div className="flex-1 overflow-y-auto p-4">
-          {sidebarOpen ? (
-            <div className="space-y-6">
-              {/* Quick Actions */}
-              <div>
-                <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">
-                  Quick Actions
-                </h3>
-                <QuickActions />
-              </div>
-
-              {/* Recent Activity */}
-              <div>
-                <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">
-                  Recent Activity
-                </h3>
-                <RecentActivity />
-              </div>
-            </div>
-          ) : (
-            // Collapsed sidebar - show icons only
-            <div className="space-y-2">
-              <button
-                onClick={() => setSidebarOpen(true)}
-                className="w-full p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
-                title="Quick Actions"
-              >
-                <TrendingUp className="w-5 h-5 mx-auto" />
+            <div className="flex items-center gap-2">
+              <button className="p-2 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100 transition-colors">
+                <Settings className="w-5 h-5" />
               </button>
-              <button
-                onClick={() => setSidebarOpen(true)}
-                className="w-full p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
-                title="Recent Activity"
-              >
-                <Clock className="w-5 h-5 mx-auto" />
+              <button className="p-2 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100 transition-colors">
+                <HelpCircle className="w-5 h-5" />
               </button>
-            </div>
-          )}
-        </div>
-
-        {/* Sidebar Footer */}
-        {sidebarOpen && (
-          <div className="p-4 border-t border-gray-200">
-            <div className="text-xs text-gray-500 text-center">
-              B1-B12 Features Active
             </div>
           </div>
-        )}
-      </aside>
-
-      {/* Mobile Sidebar Overlay */}
-      {mobileSidebarOpen && (
-        <div
-          className="lg:hidden fixed inset-0 bg-black bg-opacity-50 z-40"
-          onClick={() => setMobileSidebarOpen(false)}
-        >
-          <aside
-            className="absolute left-0 top-0 bottom-0 w-80 bg-white shadow-xl"
-            onClick={(e) => e.stopPropagation()}
-          >
-            {/* Mobile Sidebar Header */}
-            <div className="h-16 border-b border-gray-200 flex items-center justify-between px-4">
-              <div className="flex items-center gap-2">
-                <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
-                  <FileEdit className="w-5 h-5 text-white" />
-                </div>
-                <div>
-                  <h2 className="text-sm font-bold text-gray-900">Quick Actions</h2>
-                  <p className="text-xs text-gray-600">Shortcuts</p>
-                </div>
-              </div>
-              <button
-                onClick={() => setMobileSidebarOpen(false)}
-                className="p-2 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100 transition-colors"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            {/* Mobile Sidebar Content */}
-            <div className="overflow-y-auto p-4">
-              <div className="space-y-6">
-                <div>
-                  <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">
-                    Quick Actions
-                  </h3>
-                  <QuickActions />
-                </div>
-                <div>
-                  <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">
-                    Recent Activity
-                  </h3>
-                  <RecentActivity />
-                </div>
-              </div>
-            </div>
-          </aside>
         </div>
-      )}
+      </header>
 
-      {/* Main Content Area */}
-      <div className="flex-1 flex flex-col min-h-screen">
-        {/* Header */}
-        <header className="bg-white border-b border-gray-200 sticky top-0 z-30">
-          <div className="px-4 sm:px-6 lg:px-8">
-            <div className="flex items-center justify-between h-16">
-              <div className="flex items-center gap-3">
-                {/* Mobile Menu Button */}
+      {/* Tab Navigation */}
+      <div className="bg-white border-b border-gray-200 sticky top-16 z-40">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <nav className="flex -mb-px overflow-x-auto scrollbar-hide">
+            {tabs.map(tab => {
+              const Icon = tab.icon
+              const isActive = activeTab === tab.id
+
+              return (
                 <button
-                  onClick={() => setMobileSidebarOpen(true)}
-                  className="lg:hidden p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id)}
+                  className={`group relative flex items-center gap-2 px-4 py-3 border-b-2 font-medium text-sm whitespace-nowrap transition-colors ${
+                    isActive
+                      ? 'border-blue-600 text-blue-600'
+                      : 'border-transparent text-gray-600 hover:text-gray-900 hover:border-gray-300'
+                  }`}
                 >
-                  <Menu className="w-5 h-5" />
-                </button>
+                  <Icon className="w-4 h-4" />
+                  <span>{tab.label}</span>
 
-                <div className="flex items-center gap-2">
-                  <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center lg:hidden">
-                    <FileEdit className="w-5 h-5 text-white" />
+                  {/* Tooltip */}
+                  <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-1 bg-gray-900 text-white text-xs rounded shadow-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-50">
+                    {tab.description}
                   </div>
-                  <div>
-                    <h1 className="text-lg lg:text-xl font-bold text-gray-900">AutoFil</h1>
-                    <p className="text-xs text-gray-600 hidden sm:block">Smart Form Automation</p>
-                  </div>
-                </div>
-              </div>
+                </button>
+              )
+            })}
+          </nav>
+        </div>
+      </div>
 
-              <div className="flex items-center gap-2">
-                <button className="p-2 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100 transition-colors">
-                  <Settings className="w-5 h-5" />
-                </button>
-                <button className="p-2 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100 transition-colors">
-                  <HelpCircle className="w-5 h-5" />
-                </button>
-              </div>
+      {/* Main Content */}
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="animate-fadeIn">
+          {activeTab === 'overview' && <OverviewTab />}
+          {activeTab === 'folders' && <FoldersTab />}
+          {activeTab === 'upload' && <UploadTab />}
+          {activeTab === 'submissions' && <SubmissionsTab />}
+          {activeTab === 'history' && <HistoryTab />}
+          {activeTab === 'compare' && <CompareTab />}
+          {activeTab === 'export' && <ExportTab />}
+        </div>
+        {children}
+      </main>
+
+      {/* Footer */}
+      <footer className="bg-white border-t border-gray-200 mt-16">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-4 text-sm text-gray-600">
+            <p>© 2025 AutoFil. All rights reserved.</p>
+            <div className="flex items-center gap-6">
+              <a href="#" className="hover:text-gray-900 transition-colors">Documentation</a>
+              <a href="#" className="hover:text-gray-900 transition-colors">Support</a>
+              <a href="#" className="hover:text-gray-900 transition-colors">Privacy</a>
             </div>
-          </div>
-        </header>
-
-        {/* Tab Navigation */}
-        <div className="bg-white border-b border-gray-200 sticky top-16 z-20">
-          <div className="px-4 sm:px-6 lg:px-8">
-            <nav className="flex -mb-px overflow-x-auto scrollbar-hide">
-              {tabs.map(tab => {
-                const Icon = tab.icon
-                const isActive = activeTab === tab.id
-
-                return (
-                  <button
-                    key={tab.id}
-                    onClick={() => setActiveTab(tab.id)}
-                    className={`group relative flex items-center gap-2 px-4 py-3 border-b-2 font-medium text-sm whitespace-nowrap transition-colors ${
-                      isActive
-                        ? 'border-blue-600 text-blue-600'
-                        : 'border-transparent text-gray-600 hover:text-gray-900 hover:border-gray-300'
-                    }`}
-                  >
-                    <Icon className="w-4 h-4" />
-                    <span>{tab.label}</span>
-
-                    {/* Tooltip */}
-                    <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-1 bg-gray-900 text-white text-xs rounded shadow-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-50">
-                      {tab.description}
-                    </div>
-                  </button>
-                )
-              })}
-            </nav>
           </div>
         </div>
-
-        {/* Tab Content */}
-        <main className="flex-1 overflow-y-auto">
-          <div className="px-4 sm:px-6 lg:px-8 py-8">
-            <div className="animate-fadeIn">
-              {activeTab === 'overview' && <OverviewTab />}
-              {activeTab === 'folders' && <FoldersTab />}
-              {activeTab === 'upload' && <UploadTab />}
-              {activeTab === 'submissions' && <SubmissionsTab />}
-              {activeTab === 'history' && <HistoryTab />}
-              {activeTab === 'compare' && <CompareTab />}
-              {activeTab === 'export' && <ExportTab />}
-            </div>
-            {children}
-          </div>
-        </main>
-
-        {/* Footer */}
-        <footer className="bg-white border-t border-gray-200 mt-auto">
-          <div className="px-4 sm:px-6 lg:px-8 py-4">
-            <div className="flex flex-col sm:flex-row items-center justify-between gap-4 text-sm text-gray-600">
-              <p>© 2025 AutoFil. All rights reserved.</p>
-              <div className="flex items-center gap-6">
-                <a href="#" className="hover:text-gray-900 transition-colors">Documentation</a>
-                <a href="#" className="hover:text-gray-900 transition-colors">Support</a>
-                <a href="#" className="hover:text-gray-900 transition-colors">Privacy</a>
-              </div>
-            </div>
-          </div>
-        </footer>
-      </div>
+      </footer>
     </div>
   )
 }
 
 // ========================================
-// TAB COMPONENTS
+// OVERVIEW TAB - WITH INTERACTIVE COMPONENTS
 // ========================================
-
 function OverviewTab() {
   return (
-    <div className="space-y-8 max-w-5xl">
+    <div className="space-y-8">
       {/* Welcome Banner */}
       <div className="bg-gradient-to-r from-blue-600 to-blue-700 rounded-xl shadow-lg p-8 text-white">
         <h2 className="text-3xl font-bold mb-2">Welcome to AutoFil</h2>
@@ -335,18 +178,50 @@ function OverviewTab() {
         </p>
       </div>
 
+      {/* Quick Actions - INTERACTIVE */}
+      <div>
+        <h3 className="text-lg font-semibold text-gray-900 mb-4">Quick Actions</h3>
+        <QuickActions />
+      </div>
+
       {/* Stats Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard icon={FileEdit} label="Total Submissions" value="0" color="blue" />
-        <StatCard icon={TrendingUp} label="Avg Confidence" value="0%" color="green" />
-        <StatCard icon={CheckSquare} label="Completed Today" value="0" color="purple" />
-        <StatCard icon={Calendar} label="This Week" value="0" color="orange" />
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <StatCard
+          icon={FileEdit}
+          label="Total Submissions"
+          value="0"
+          color="blue"
+        />
+        <StatCard
+          icon={TrendingUp}
+          label="Avg Confidence"
+          value="0%"
+          color="green"
+        />
+        <StatCard
+          icon={CheckSquare}
+          label="Completed Today"
+          value="0"
+          color="purple"
+        />
+        <StatCard
+          icon={Calendar}
+          label="This Week"
+          value="0"
+          color="orange"
+        />
+      </div>
+
+      {/* Recent Activity - INTERACTIVE */}
+      <div>
+        <h3 className="text-lg font-semibold text-gray-900 mb-4">Recent Activity</h3>
+        <RecentActivity />
       </div>
 
       {/* Feature Overview Grid */}
       <div className="bg-white rounded-lg border border-gray-200 p-6">
         <h3 className="text-lg font-semibold text-gray-900 mb-4">Available Features</h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           <FeatureCard
             title="Folder Management"
             description="Organize clients and submissions hierarchically"
@@ -451,10 +326,10 @@ function FeatureCard({
   )
 }
 
-// Other Tab Components (keep as before)
+// Keep all your other tab components (FoldersTab, UploadTab, etc.) as they were...
 function FoldersTab() {
   return (
-    <div className="bg-white rounded-lg border border-gray-200 p-8 max-w-4xl">
+    <div className="bg-white rounded-lg border border-gray-200 p-8">
       <div className="text-center">
         <FolderTree className="w-16 h-16 text-blue-600 mx-auto mb-4" />
         <h2 className="text-2xl font-bold text-gray-900 mb-2">Folder Management</h2>
@@ -488,9 +363,11 @@ function FoldersTab() {
   )
 }
 
+// ... (keep all other tab components as they were)
+
 function UploadTab() {
   return (
-    <div className="bg-white rounded-lg border border-gray-200 p-8 max-w-4xl">
+    <div className="bg-white rounded-lg border border-gray-200 p-8">
       <div className="text-center">
         <Upload className="w-16 h-16 text-green-600 mx-auto mb-4" />
         <h2 className="text-2xl font-bold text-gray-900 mb-2">Upload & Extract</h2>
@@ -519,7 +396,7 @@ function UploadTab() {
 
 function SubmissionsTab() {
   return (
-    <div className="bg-white rounded-lg border border-gray-200 p-8 max-w-4xl">
+    <div className="bg-white rounded-lg border border-gray-200 p-8">
       <div className="text-center">
         <FileEdit className="w-16 h-16 text-purple-600 mx-auto mb-4" />
         <h2 className="text-2xl font-bold text-gray-900 mb-2">Edit Submissions</h2>
@@ -543,7 +420,7 @@ function SubmissionsTab() {
 
 function HistoryTab() {
   return (
-    <div className="bg-white rounded-lg border border-gray-200 p-8 max-w-4xl">
+    <div className="bg-white rounded-lg border border-gray-200 p-8">
       <div className="text-center">
         <Clock className="w-16 h-16 text-orange-600 mx-auto mb-4" />
         <h2 className="text-2xl font-bold text-gray-900 mb-2">Version History</h2>
@@ -567,7 +444,7 @@ function HistoryTab() {
 
 function CompareTab() {
   return (
-    <div className="bg-white rounded-lg border border-gray-200 p-8 max-w-4xl">
+    <div className="bg-white rounded-lg border border-gray-200 p-8">
       <div className="text-center">
         <GitCompare className="w-16 h-16 text-red-600 mx-auto mb-4" />
         <h2 className="text-2xl font-bold text-gray-900 mb-2">Data Comparison</h2>
@@ -591,7 +468,7 @@ function CompareTab() {
 
 function ExportTab() {
   return (
-    <div className="bg-white rounded-lg border border-gray-200 p-8 max-w-4xl">
+    <div className="bg-white rounded-lg border border-gray-200 p-8">
       <div className="text-center">
         <Download className="w-16 h-16 text-teal-600 mx-auto mb-4" />
         <h2 className="text-2xl font-bold text-gray-900 mb-2">Export & Send</h2>
