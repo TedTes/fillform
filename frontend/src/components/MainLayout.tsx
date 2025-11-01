@@ -115,35 +115,38 @@ export default function MainLayout({ children }: MainLayoutProps) {
           ${sidebarOpen ? 'w-80' : 'w-16'}
         `}
       >
-        {/* Sidebar Header */}
-        <div className="h-16 border-b border-gray-200 flex items-center justify-between px-4">
-          {sidebarOpen ? (
-            <>
-              <div className="flex items-center gap-3">
-                <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
-                  <TrendingUp className="w-4 h-4 text-white" />
-                </div>
-                <div>
-                  <h2 className="text-sm font-bold text-gray-900">Quick Actions</h2>
-                  <p className="text-xs text-gray-500">Shortcuts</p>
-                </div>
-              </div>
-              <button
-                onClick={() => setSidebarOpen(false)}
-                className="p-2 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100 transition-colors"
-              >
-                <ChevronLeft className="w-5 h-5" />
-              </button>
-            </>
-          ) : (
-            <button
-              onClick={() => setSidebarOpen(true)}
-              className="w-full p-2 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100 transition-colors"
-            >
-              <ChevronRight className="w-5 h-5 mx-auto" />
-            </button>
-          )}
+  
+{/* Sidebar Header */}
+<div className="h-16 border-b border-gray-200 flex items-center justify-between px-4">
+  {sidebarOpen ? (
+    <>
+      <div className="flex items-center gap-2.5">
+        <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
+          <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+          </svg>
         </div>
+        <div>
+          <h1 className="text-sm font-bold text-gray-900 leading-tight">AutoFil</h1>
+          <p className="text-[10px] text-gray-500 leading-tight">Smart Form Automation</p>
+        </div>
+      </div>
+      <button
+        onClick={() => setSidebarOpen(false)}
+        className="p-2 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100 transition-colors"
+      >
+        <ChevronLeft className="w-5 h-5" />
+      </button>
+    </>
+  ) : (
+    <button
+      onClick={() => setSidebarOpen(true)}
+      className="w-full p-2 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100 transition-colors"
+    >
+      <ChevronRight className="w-5 h-5 mx-auto" />
+    </button>
+  )}
+</div>
 
         {/* Sidebar Content */}
         <div className="flex-1 overflow-y-auto p-4">
@@ -225,24 +228,26 @@ export default function MainLayout({ children }: MainLayoutProps) {
             className="absolute left-0 top-0 bottom-0 w-80 bg-white shadow-xl overflow-y-auto"
             onClick={(e) => e.stopPropagation()}
           >
-            {/* Mobile Sidebar Header */}
-            <div className="h-16 border-b border-gray-200 flex items-center justify-between px-4">
-              <div className="flex items-center gap-3">
-                <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
-                  <TrendingUp className="w-4 h-4 text-white" />
-                </div>
-                <div>
-                  <h2 className="text-sm font-bold text-gray-900">Quick Actions</h2>
-                  <p className="text-xs text-gray-500">Shortcuts</p>
-                </div>
-              </div>
-              <button
-                onClick={() => setMobileSidebarOpen(false)}
-                className="p-2 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100 transition-colors"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
+          {/* Mobile Sidebar Header */}
+<div className="h-16 border-b border-gray-200 flex items-center justify-between px-4">
+  <div className="flex items-center gap-2.5">
+    <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
+      <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+      </svg>
+    </div>
+    <div>
+      <h1 className="text-sm font-bold text-gray-900 leading-tight">AutoFil</h1>
+      <p className="text-[10px] text-gray-500 leading-tight">Smart Form Automation</p>
+    </div>
+  </div>
+  <button
+    onClick={() => setMobileSidebarOpen(false)}
+    className="p-2 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100 transition-colors"
+  >
+    <X className="w-5 h-5" />
+  </button>
+</div>
 
             {/* Mobile Sidebar Content */}
             <div className="p-4">
@@ -291,35 +296,44 @@ export default function MainLayout({ children }: MainLayoutProps) {
       {/* Main Content Area */}
       <div className="flex-1 flex flex-col min-h-screen">
         {/* Header */}
-        <header className="bg-white border-b border-gray-200 sticky top-0 z-30">
-          <div className="px-4 sm:px-6 lg:px-8">
-            <div className="flex items-center justify-between h-16">
-              <div className="flex items-center gap-3">
-                {/* Mobile Menu Button */}
-                <button
-                  onClick={() => setMobileSidebarOpen(true)}
-                  className="lg:hidden p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
-                >
-                  <Menu className="w-5 h-5" />
-                </button>
+        {/* Header */}
+<header className="bg-white border-b border-gray-200 sticky top-0 z-30">
+  <div className="px-4 sm:px-6 lg:px-8">
+    <div className="flex items-center justify-between h-16">
+      {/* Left: Mobile menu + Breadcrumbs preview (on mobile) */}
+      <div className="flex items-center gap-3">
+        <button
+          onClick={() => setMobileSidebarOpen(true)}
+          className="lg:hidden p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
+        >
+          <Menu className="w-5 h-5" />
+        </button>
+        
+        {/* Show logo on mobile only (when sidebar is hidden) */}
+        <div className="lg:hidden">
+          <h1 className="text-lg font-bold text-gray-900">AutoFil</h1>
+        </div>
 
-                <div>
-                  <h1 className="text-xl font-bold text-gray-900">AutoFil</h1>
-                  <p className="text-xs text-gray-500">Smart Form Automation</p>
-                </div>
-              </div>
+        {/* Show current view on desktop */}
+        <div className="hidden lg:block">
+          <h2 className="text-lg font-semibold text-gray-900">
+            {currentView.breadcrumbs[currentView.breadcrumbs.length - 1]}
+          </h2>
+        </div>
+      </div>
 
-              <div className="flex items-center gap-2">
-                <button className="p-2 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100 transition-colors">
-                  <Settings className="w-5 h-5" />
-                </button>
-                <button className="p-2 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100 transition-colors">
-                  <HelpCircle className="w-5 h-5" />
-                </button>
-              </div>
-            </div>
-          </div>
-        </header>
+      {/* Right: Settings + Help */}
+      <div className="flex items-center gap-2">
+        <button className="p-2 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100 transition-colors">
+          <Settings className="w-5 h-5" />
+        </button>
+        <button className="p-2 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100 transition-colors">
+          <HelpCircle className="w-5 h-5" />
+        </button>
+      </div>
+    </div>
+  </div>
+</header>
 
         {/* Breadcrumbs */}
         <div className="bg-white border-b border-gray-100 px-4 sm:px-6 lg:px-8 py-2">
