@@ -1,62 +1,75 @@
 'use client'
 
-import {
-  Upload,
-  FolderPlus,
-  FileText,
-  Download,
-  Zap
-} from 'lucide-react'
+import { Upload, FolderPlus, FileText, Download } from 'lucide-react'
+import type { ViewType } from '@/components/MainLayout'
 
-export default function QuickActions() {
+interface QuickActionsProps {
+  onNavigate: (type: ViewType, data?: any, breadcrumbs?: string[]) => void
+}
+
+export default function QuickActions({ onNavigate }: QuickActionsProps) {
   const actions = [
     {
-      icon: Upload,
-      label: 'Upload Document',
+      id: 'upload',
+      title: 'Upload Document',
       description: 'Extract data from PDF',
-      color: 'bg-blue-500 hover:bg-blue-600',
-      action: () => console.log('Upload')
+      icon: Upload,
+      color: 'bg-blue-500',
+      onClick: () => onNavigate('upload', undefined, ['Home', 'Upload'])
     },
     {
-      icon: FolderPlus,
-      label: 'New Folder',
+      id: 'new-client',
+      title: 'New Client',
       description: 'Create client folder',
-      color: 'bg-green-500 hover:bg-green-600',
-      action: () => console.log('New Folder')
+      icon: FolderPlus,
+      color: 'bg-green-500',
+      onClick: () => {
+        // TODO: would open modal or navigate to create form
+        alert('Create Client Modal (to be implemented)')
+      }
     },
     {
-      icon: FileText,
-      label: 'New Submission',
+      id: 'new-submission',
+      title: 'New Submission',
       description: 'Start from template',
-      color: 'bg-purple-500 hover:bg-purple-600',
-      action: () => console.log('New Submission')
+      icon: FileText,
+      color: 'bg-purple-500',
+      onClick: () => {
+        // TODO : would open modal
+        alert('Create Submission Modal (to be implemented)')
+      }
     },
     {
+      id: 'quick-export',
+      title: 'Quick Export',
+      description: 'Export current view',
       icon: Download,
-      label: 'Export All',
-      description: 'Download package',
-      color: 'bg-orange-500 hover:bg-orange-600',
-      action: () => console.log('Export')
+      color: 'bg-orange-500',
+      onClick: () => onNavigate('export', undefined, ['Home', 'Export'])
     }
   ]
 
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-      {actions.map((action, idx) => {
+    <div className="space-y-3">
+      {actions.map((action) => {
         const Icon = action.icon
-        
         return (
           <button
-            key={idx}
-            onClick={action.action}
-            className={`${action.color} text-white p-6 rounded-lg shadow-sm hover:shadow-md transition-all group`}
+            key={action.id}
+            onClick={action.onClick}
+            className={`${action.color} text-white rounded-lg p-4 w-full text-left hover:opacity-90 transition-all shadow-sm hover:shadow-md`}
           >
-            <div className="flex items-center gap-3 mb-2">
-              <Icon className="w-6 h-6" />
-              <Zap className="w-4 h-4 opacity-0 group-hover:opacity-100 transition-opacity" />
+            <div className="flex items-start gap-3">
+              <Icon className="w-5 h-5 flex-shrink-0 mt-0.5" />
+              <div className="flex-1 min-w-0">
+                <h4 className="font-semibold text-sm leading-tight mb-1">
+                  {action.title}
+                </h4>
+                <p className="text-xs opacity-90 leading-tight">
+                  {action.description}
+                </p>
+              </div>
             </div>
-            <h3 className="font-semibold text-lg mb-1">{action.label}</h3>
-            <p className="text-sm text-white/80">{action.description}</p>
           </button>
         )
       })}

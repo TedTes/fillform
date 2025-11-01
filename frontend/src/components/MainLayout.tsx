@@ -1,80 +1,98 @@
 'use client'
-
-import { useState,type ComponentType, type SVGProps } from 'react'
+import { CheckSquare, Calendar } from 'lucide-react'
+import { useState } from 'react'
 import {
-  FolderTree,
+  Home,
   Upload,
-  FileEdit,
+  FolderPlus,
+  FileText,
+  FolderTree,
   Clock,
   GitCompare,
   Download,
   Settings,
   HelpCircle,
-  TrendingUp,
-  CheckSquare,
-  Calendar,
   ChevronLeft,
   ChevronRight,
   Menu,
-  X
+  X,
+  TrendingUp,
+  FileEdit
 } from 'lucide-react'
-
 
 import QuickActions from '@/components/QuickActions'
 import RecentActivity from '@/components/RecentActivity'
 
+// View types
+export type ViewType = 
+  | 'home'
+  | 'upload'
+  | 'files'
+  | 'file-detail'
+  | 'history'
+  | 'compare'
+  | 'export'
 
-export type TabId = 'overview' | 'folders' | 'upload' | 'submissions' | 'history' | 'compare' | 'export'
-type IconComponent = ComponentType<SVGProps<SVGSVGElement>>;
+interface ViewState {
+  type: ViewType
+  data?: any // Context data for the view (e.g., file ID, client ID)
+  breadcrumbs: string[]
+}
 
+interface MainLayoutProps {
+  children?: React.ReactNode
+}
 
-export default function MainLayout({ children }: {children?: React.ReactNode}) {
-  const [activeTab, setActiveTab] = useState<TabId>('overview')
+export default function MainLayout({ children }: MainLayoutProps) {
   const [sidebarOpen, setSidebarOpen] = useState(true)
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false)
+  
+  // Current view state
+  const [currentView, setCurrentView] = useState<ViewState>({
+    type: 'home',
+    breadcrumbs: ['Home']
+  })
 
-  const tabs = [
+  // Navigation function
+  const navigateTo = (type: ViewType, data?: any, breadcrumbs?: string[]) => {
+    setCurrentView({
+      type,
+      data,
+      breadcrumbs: breadcrumbs || [type.charAt(0).toUpperCase() + type.slice(1)]
+    })
+  }
+
+  // Sidebar navigation items
+  const navigationItems = [
     {
-      id: 'overview' as TabId,
-      label: 'Overview',
-      icon: TrendingUp,
-      description: 'Dashboard with quick actions'
+      id: 'home',
+      label: 'Dashboard',
+      icon: Home,
+      onClick: () => navigateTo('home', undefined, ['Home'])
     },
     {
-      id: 'folders' as TabId,
-      label: 'Folders',
+      id: 'files',
+      label: 'Browse Files',
       icon: FolderTree,
-      description: 'Organize clients and submissions'
+      onClick: () => navigateTo('files', undefined, ['Home', 'Files'])
     },
     {
-      id: 'upload' as TabId,
-      label: 'Upload',
-      icon: Upload,
-      description: 'Upload and extract documents'
-    },
-    {
-      id: 'submissions' as TabId,
-      label: 'Submissions',
-      icon: FileEdit,
-      description: 'Edit and fill forms'
-    },
-    {
-      id: 'history' as TabId,
+      id: 'history',
       label: 'History',
       icon: Clock,
-      description: 'View version history'
+      onClick: () => navigateTo('history', undefined, ['Home', 'History'])
     },
     {
-      id: 'compare' as TabId,
+      id: 'compare',
       label: 'Compare',
       icon: GitCompare,
-      description: 'Compare and resolve conflicts'
+      onClick: () => navigateTo('compare', undefined, ['Home', 'Compare'])
     },
     {
-      id: 'export' as TabId,
+      id: 'export',
       label: 'Export',
       icon: Download,
-      description: 'Export and send data'
+      onClick: () => navigateTo('export', undefined, ['Home', 'Export'])
     }
   ]
 
@@ -91,47 +109,74 @@ export default function MainLayout({ children }: {children?: React.ReactNode}) {
       >
         {/* Sidebar Header */}
         <div className="h-16 border-b border-gray-200 flex items-center justify-between px-4">
-          {sidebarOpen && (
-            <div className="flex items-center gap-2">
-              <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
-                <FileEdit className="w-5 h-5 text-white" />
+          {sidebarOpen ? (
+            <>
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
+                  <TrendingUp className="w-4 h-4 text-white" />
+                </div>
+                <div>
+                  <h2 className="text-sm font-bold text-gray-900">Quick Actions</h2>
+                  <p className="text-xs text-gray-500">Shortcuts</p>
+                </div>
               </div>
-              <div>
-                <h2 className="text-sm font-bold text-gray-900">Quick Actions</h2>
-                <p className="text-xs text-gray-600">Shortcuts</p>
-              </div>
-            </div>
+              <button
+                onClick={() => setSidebarOpen(false)}
+                className="p-2 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100 transition-colors"
+              >
+                <ChevronLeft className="w-5 h-5" />
+              </button>
+            </>
+          ) : (
+            <button
+              onClick={() => setSidebarOpen(true)}
+              className="w-full p-2 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100 transition-colors"
+            >
+              <ChevronRight className="w-5 h-5 mx-auto" />
+            </button>
           )}
-          <button
-            onClick={() => setSidebarOpen(!sidebarOpen)}
-            className="p-2 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100 transition-colors"
-          >
-            {sidebarOpen ? (
-              <ChevronLeft className="w-5 h-5" />
-            ) : (
-              <ChevronRight className="w-5 h-5" />
-            )}
-          </button>
         </div>
 
         {/* Sidebar Content */}
         <div className="flex-1 overflow-y-auto p-4">
           {sidebarOpen ? (
             <div className="space-y-6">
-              {/* Quick Actions */}
+             
+
+              {/* Navigation */}
               <div>
                 <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">
-                  Quick Actions
+                  NAVIGATION
                 </h3>
-                <QuickActions />
+                <div className="space-y-1">
+                  {navigationItems.map((item) => {
+                    const Icon = item.icon
+                    const isActive = currentView.type === item.id
+
+                    return (
+                      <button
+                        key={item.id}
+                        onClick={item.onClick}
+                        className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg transition-colors ${
+                          isActive
+                            ? 'bg-blue-50 text-blue-700'
+                            : 'text-gray-700 hover:bg-gray-100'
+                        }`}
+                      >
+                        <Icon className="w-4 h-4 flex-shrink-0" />
+                        <span className="text-sm font-medium">{item.label}</span>
+                      </button>
+                    )
+                  })}
+                </div>
               </div>
 
               {/* Recent Activity */}
               <div>
                 <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">
-                  Recent Activity
+                  RECENT ACTIVITY
                 </h3>
-                <RecentActivity />
+                <RecentActivity onNavigate={navigateTo} />
               </div>
             </div>
           ) : (
@@ -144,25 +189,22 @@ export default function MainLayout({ children }: {children?: React.ReactNode}) {
               >
                 <TrendingUp className="w-5 h-5 mx-auto" />
               </button>
-              <button
-                onClick={() => setSidebarOpen(true)}
-                className="w-full p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
-                title="Recent Activity"
-              >
-                <Clock className="w-5 h-5 mx-auto" />
-              </button>
+              {navigationItems.map((item) => {
+                const Icon = item.icon
+                return (
+                  <button
+                    key={item.id}
+                    onClick={item.onClick}
+                    className="w-full p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+                    title={item.label}
+                  >
+                    <Icon className="w-5 h-5 mx-auto" />
+                  </button>
+                )
+              })}
             </div>
           )}
         </div>
-
-        {/* Sidebar Footer */}
-        {sidebarOpen && (
-          <div className="p-4 border-t border-gray-200">
-            <div className="text-xs text-gray-500 text-center">
-              B1-B12 Features Active
-            </div>
-          </div>
-        )}
       </aside>
 
       {/* Mobile Sidebar Overlay */}
@@ -172,18 +214,18 @@ export default function MainLayout({ children }: {children?: React.ReactNode}) {
           onClick={() => setMobileSidebarOpen(false)}
         >
           <aside
-            className="absolute left-0 top-0 bottom-0 w-80 bg-white shadow-xl"
+            className="absolute left-0 top-0 bottom-0 w-80 bg-white shadow-xl overflow-y-auto"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Mobile Sidebar Header */}
             <div className="h-16 border-b border-gray-200 flex items-center justify-between px-4">
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-3">
                 <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
-                  <FileEdit className="w-5 h-5 text-white" />
+                  <TrendingUp className="w-4 h-4 text-white" />
                 </div>
                 <div>
                   <h2 className="text-sm font-bold text-gray-900">Quick Actions</h2>
-                  <p className="text-xs text-gray-600">Shortcuts</p>
+                  <p className="text-xs text-gray-500">Shortcuts</p>
                 </div>
               </div>
               <button
@@ -195,19 +237,42 @@ export default function MainLayout({ children }: {children?: React.ReactNode}) {
             </div>
 
             {/* Mobile Sidebar Content */}
-            <div className="overflow-y-auto p-4">
+            <div className="p-4">
               <div className="space-y-6">
                 <div>
                   <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">
-                    Quick Actions
+                    QUICK ACTIONS
                   </h3>
-                  <QuickActions />
+                  <QuickActions onNavigate={navigateTo} />
                 </div>
                 <div>
                   <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">
-                    Recent Activity
+                    NAVIGATION
                   </h3>
-                  <RecentActivity />
+                  <div className="space-y-1">
+                    {navigationItems.map((item) => {
+                      const Icon = item.icon
+                      return (
+                        <button
+                          key={item.id}
+                          onClick={() => {
+                            item.onClick()
+                            setMobileSidebarOpen(false)
+                          }}
+                          className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-gray-700 hover:bg-gray-100 transition-colors"
+                        >
+                          <Icon className="w-4 h-4 flex-shrink-0" />
+                          <span className="text-sm font-medium">{item.label}</span>
+                        </button>
+                      )
+                    })}
+                  </div>
+                </div>
+                <div>
+                  <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">
+                    RECENT ACTIVITY
+                  </h3>
+                  <RecentActivity onNavigate={navigateTo} />
                 </div>
               </div>
             </div>
@@ -230,14 +295,9 @@ export default function MainLayout({ children }: {children?: React.ReactNode}) {
                   <Menu className="w-5 h-5" />
                 </button>
 
-                <div className="flex items-center gap-2">
-                  <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center lg:hidden">
-                    <FileEdit className="w-5 h-5 text-white" />
-                  </div>
-                  <div>
-                    <h1 className="text-lg lg:text-xl font-bold text-gray-900">AutoFil</h1>
-                    <p className="text-xs text-gray-600 hidden sm:block">Smart Form Automation</p>
-                  </div>
+                <div>
+                  <h1 className="text-xl font-bold text-gray-900">AutoFil</h1>
+                  <p className="text-xs text-gray-500">Smart Form Automation</p>
                 </div>
               </div>
 
@@ -253,81 +313,58 @@ export default function MainLayout({ children }: {children?: React.ReactNode}) {
           </div>
         </header>
 
-        {/* Tab Navigation */}
-        <div className="bg-white border-b border-gray-200 sticky top-16 z-20">
-          <div className="px-4 sm:px-6 lg:px-8">
-            <nav className="flex -mb-px overflow-x-auto scrollbar-hide">
-              {tabs.map(tab => {
-                const Icon = tab.icon
-                const isActive = activeTab === tab.id
-
-                return (
-                  <button
-                    key={tab.id}
-                    onClick={() => setActiveTab(tab.id)}
-                    className={`group relative flex items-center gap-2 px-4 py-3 border-b-2 font-medium text-sm whitespace-nowrap transition-colors ${
-                      isActive
-                        ? 'border-blue-600 text-blue-600'
-                        : 'border-transparent text-gray-600 hover:text-gray-900 hover:border-gray-300'
-                    }`}
-                  >
-                    <Icon className="w-4 h-4" />
-                    <span>{tab.label}</span>
-
-                    {/* Tooltip */}
-                    <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-1 bg-gray-900 text-white text-xs rounded shadow-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-50">
-                      {tab.description}
-                    </div>
-                  </button>
-                )
-              })}
-            </nav>
-          </div>
+        {/* Breadcrumbs */}
+        <div className="bg-white border-b border-gray-100 px-4 sm:px-6 lg:px-8 py-2">
+          <nav className="flex items-center space-x-2 text-sm">
+            {currentView.breadcrumbs.map((crumb, index) => (
+              <div key={index} className="flex items-center">
+                {index > 0 && <ChevronRight className="w-4 h-4 text-gray-400 mx-2" />}
+                <button
+                  onClick={() => {
+                    if (index === 0) navigateTo('home', undefined, ['Home'])
+                  }}
+                  className={`${
+                    index === currentView.breadcrumbs.length - 1
+                      ? 'text-gray-900 font-medium'
+                      : 'text-gray-500 hover:text-gray-700'
+                  }`}
+                >
+                  {crumb}
+                </button>
+              </div>
+            ))}
+          </nav>
         </div>
 
-        {/* Tab Content */}
-        <main className="flex-1 overflow-y-auto">
+        {/* Main View Content */}
+        <main className="flex-1 overflow-y-auto bg-gray-50">
           <div className="px-4 sm:px-6 lg:px-8 py-8">
             <div className="animate-fadeIn">
-              {activeTab === 'overview' && <OverviewTab />}
-              {activeTab === 'folders' && <FoldersTab />}
-              {activeTab === 'upload' && <UploadTab />}
-              {activeTab === 'submissions' && <SubmissionsTab />}
-              {activeTab === 'history' && <HistoryTab />}
-              {activeTab === 'compare' && <CompareTab />}
-              {activeTab === 'export' && <ExportTab />}
+              {currentView.type === 'home' && <HomeView />}
+              {currentView.type === 'upload' && <UploadView />}
+              {currentView.type === 'files' && <FilesView onNavigate={navigateTo} />}
+              {currentView.type === 'file-detail' && <FileDetailView data={currentView.data} />}
+              {currentView.type === 'history' && <HistoryView />}
+              {currentView.type === 'compare' && <CompareView />}
+              {currentView.type === 'export' && <ExportView />}
             </div>
             {children}
           </div>
         </main>
-
-        {/* Footer */}
-        <footer className="bg-white border-t border-gray-200 mt-auto">
-          <div className="px-4 sm:px-6 lg:px-8 py-4">
-            <div className="flex flex-col sm:flex-row items-center justify-between gap-4 text-sm text-gray-600">
-              <p>© 2025 AutoFil. All rights reserved.</p>
-              <div className="flex items-center gap-6">
-                <a href="#" className="hover:text-gray-900 transition-colors">Documentation</a>
-                <a href="#" className="hover:text-gray-900 transition-colors">Support</a>
-                <a href="#" className="hover:text-gray-900 transition-colors">Privacy</a>
-              </div>
-            </div>
-          </div>
-        </footer>
       </div>
     </div>
   )
 }
 
 // ========================================
-// TAB COMPONENTS
+// VIEW COMPONENTS
 // ========================================
 
-function OverviewTab() {
+function HomeView() {
   return (
-    <div className="space-y-8 max-w-5xl">
+    <div className="space-y-6">
       {/* Welcome Banner */}
-      <div className="bg-gradient-to-r from-blue-600 to-blue-700 rounded-xl shadow-lg p-8 text-white">
+      <div className="bg-gradient-to-r from-blue-600 to-blue-700 rounded-xl shadow-sm p-8 text-white">
         <h2 className="text-3xl font-bold mb-2">Welcome to AutoFil</h2>
         <p className="text-blue-100 text-lg">
           Intelligent document processing with automated extraction, version control, and export capabilities
@@ -336,22 +373,16 @@ function OverviewTab() {
 
       {/* Stats Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard icon={FileEdit} label="Total Submissions" value="0" color="blue" />
+        <StatCard icon={FileText} label="Total Submissions" value="0" color="blue" />
         <StatCard icon={TrendingUp} label="Avg Confidence" value="0%" color="green" />
         <StatCard icon={CheckSquare} label="Completed Today" value="0" color="purple" />
         <StatCard icon={Calendar} label="This Week" value="0" color="orange" />
       </div>
 
-      {/* Feature Overview Grid */}
-      <div className="bg-white rounded-lg border border-gray-200 p-6">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">Available Features</h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <FeatureCard
-            title="Folder Management"
-            description="Organize clients and submissions hierarchically"
-            features={['Two-level structure', 'Templates', 'Context enforcement']}
-            badge="B1-B4"
-          />
+      {/* Feature Overview */}
+      <div>
+        <h3 className="text-xl font-bold text-gray-900 mb-4">Available Features</h3>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           <FeatureCard
             title="Smart Extraction"
             description="Automatic data extraction with confidence scoring"
@@ -371,12 +402,6 @@ function OverviewTab() {
             badge="B9"
           />
           <FeatureCard
-            title="Dynamic Forms"
-            description="Context-aware form generation"
-            features={['Template-based', 'Smart validation', 'Pre-population']}
-            badge="B10"
-          />
-          <FeatureCard
             title="Export & API"
             description="Multiple export formats and webhooks"
             features={['CSV, JSON, ZIP', 'Webhook integration', 'Batch export']}
@@ -388,60 +413,177 @@ function OverviewTab() {
   )
 }
 
-// Helper Components
-function StatCard({
-  icon: Icon,
-  label,
-  value,
-  color
-}: {
-  icon: IconComponent
-  label: string
-  value: string
-  color: 'blue' | 'green' | 'purple' | 'orange'
-}) {
-  const colors = {
-    blue: 'bg-blue-50 text-blue-600',
-    green: 'bg-green-50 text-green-600',
-    purple: 'bg-purple-50 text-purple-600',
-    orange: 'bg-orange-50 text-orange-600'
-  }
-
+function UploadView() {
   return (
-    <div className={`${colors[color]} rounded-lg p-6`}>
-      <div className="flex items-center gap-3 mb-2">
-        <Icon className="w-5 h-5" />
-        <span className="text-sm font-medium">{label}</span>
+    <div className="max-w-3xl">
+      <div className="bg-white rounded-lg border-2 border-dashed border-gray-300 p-12 text-center hover:border-blue-400 transition-colors">
+        <Upload className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+        <h3 className="text-lg font-semibold text-gray-900 mb-2">Upload Documents</h3>
+        <p className="text-sm text-gray-600 mb-6">
+          Drag and drop your PDF files here, or click to browse
+        </p>
+        <button className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+          Choose Files
+        </button>
+        <p className="text-xs text-gray-500 mt-4">
+          Supported formats: PDF • Max size: 10MB per file
+        </p>
       </div>
-      <p className="text-3xl font-bold">{value}</p>
     </div>
   )
 }
 
-function FeatureCard({
-  title,
-  description,
-  features,
-  badge
-}: {
-  title: string
-  description: string
-  features: string[]
-  badge: string
-}) {
+function FilesView({ onNavigate }: { onNavigate: (type: ViewType, data?: any, breadcrumbs?: string[]) => void }) {
+  // Mock data
+  const files = [
+    { id: '1', name: 'ACORD_126.pdf', client: 'Client ABC', date: '2m ago', confidence: 95 },
+    { id: '2', name: 'Application.pdf', client: 'Client XYZ', date: '15m ago', confidence: 88 }
+  ]
+
   return (
-    <div className="p-4 border border-gray-200 rounded-lg hover:border-blue-300 hover:shadow-sm transition-all">
-      <div className="flex items-start justify-between mb-2">
-        <h4 className="font-semibold text-gray-900">{title}</h4>
-        <span className="px-2 py-0.5 text-xs font-medium bg-blue-100 text-blue-700 rounded">
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <h2 className="text-2xl font-bold text-gray-900">All Files</h2>
+        <button className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+          Upload New
+        </button>
+      </div>
+
+      <div className="bg-white rounded-lg border border-gray-200 divide-y">
+        {files.map((file) => (
+          <button
+            key={file.id}
+            onClick={() => onNavigate('file-detail', file, ['Home', 'Files', file.name])}
+            className="w-full p-4 hover:bg-gray-50 transition-colors text-left"
+          >
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <FileText className="w-8 h-8 text-blue-600" />
+                <div>
+                  <h4 className="font-semibold text-gray-900">{file.name}</h4>
+                  <p className="text-sm text-gray-500">{file.client} • {file.date}</p>
+                </div>
+              </div>
+              <div className="text-right">
+                <span className="text-sm font-medium text-green-600">{file.confidence}%</span>
+                <p className="text-xs text-gray-500">Confidence</p>
+              </div>
+            </div>
+          </button>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+function FileDetailView({ data }: { data: any }) {
+  return (
+    <div className="space-y-6">
+      <div className="bg-white rounded-lg border border-gray-200 p-6">
+        <div className="flex items-start justify-between mb-6">
+          <div>
+            <h2 className="text-2xl font-bold text-gray-900 mb-2">{data?.name || 'File Details'}</h2>
+            <p className="text-sm text-gray-600">{data?.client || 'Client'} • Uploaded {data?.date || 'recently'}</p>
+          </div>
+          <div className="flex gap-2">
+            <button className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50">
+              Edit
+            </button>
+            <button className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+              Export
+            </button>
+          </div>
+        </div>
+
+        <div className="aspect-[8.5/11] bg-gray-100 rounded-lg flex items-center justify-center">
+          <p className="text-gray-500">PDF Preview</p>
+        </div>
+      </div>
+
+      <div className="bg-white rounded-lg border border-gray-200 p-6">
+        <h3 className="font-semibold text-gray-900 mb-4">Extraction Results</h3>
+        <div className="space-y-3">
+          <div className="flex justify-between py-2 border-b">
+            <span className="text-sm text-gray-600">Confidence Score</span>
+            <span className="text-sm font-medium text-green-600">{data?.confidence || 0}%</span>
+          </div>
+          <div className="flex justify-between py-2 border-b">
+            <span className="text-sm text-gray-600">Fields Extracted</span>
+            <span className="text-sm font-medium text-gray-900">24</span>
+          </div>
+          <div className="flex justify-between py-2">
+            <span className="text-sm text-gray-600">Status</span>
+            <span className="text-sm font-medium text-blue-600">Ready</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function HistoryView() {
+  return (
+    <div className="bg-white rounded-lg border border-gray-200 p-8 text-center">
+      <Clock className="w-16 h-16 text-orange-600 mx-auto mb-4" />
+      <h2 className="text-2xl font-bold text-gray-900 mb-2">Version History</h2>
+      <p className="text-gray-600">Track all changes with comprehensive audit trail</p>
+    </div>
+  )
+}
+
+function CompareView() {
+  return (
+    <div className="bg-white rounded-lg border border-gray-200 p-8 text-center">
+      <GitCompare className="w-16 h-16 text-red-600 mx-auto mb-4" />
+      <h2 className="text-2xl font-bold text-gray-900 mb-2">Compare Documents</h2>
+      <p className="text-gray-600">Compare data sources and resolve conflicts</p>
+    </div>
+  )
+}
+
+function ExportView() {
+  return (
+    <div className="bg-white rounded-lg border border-gray-200 p-8 text-center">
+      <Download className="w-16 h-16 text-teal-600 mx-auto mb-4" />
+      <h2 className="text-2xl font-bold text-gray-900 mb-2">Export Data</h2>
+      <p className="text-gray-600">Export data in multiple formats or send to external systems</p>
+    </div>
+  )
+}
+
+// Helper Components
+function StatCard({ icon: Icon, label, value, color }: any) {
+  const colors:Record<string,string>= {
+    blue: 'bg-blue-50 border-blue-100 text-blue-600',
+    green: 'bg-green-50 border-green-100 text-green-600',
+    purple: 'bg-purple-50 border-purple-100 text-purple-600',
+    orange: 'bg-orange-50 border-orange-100 text-orange-600'
+  }
+  return (
+    <div className={`${colors[color]} border rounded-lg p-6`}>
+      <div className="flex items-center gap-2 mb-3">
+        <Icon className="w-5 h-5" />
+        <span className="text-sm font-medium text-gray-700">{label}</span>
+      </div>
+      <p className="text-4xl font-bold">{value}</p>
+    </div>
+  )
+}
+
+function FeatureCard({ title, description, features, badge }: any) {
+  return (
+    <div className="bg-white border border-gray-200 rounded-lg p-6 hover:border-blue-200 hover:shadow-sm transition-all">
+      <div className="flex items-start justify-between mb-3">
+        <h4 className="text-lg font-semibold text-gray-900">{title}</h4>
+        <span className="px-2.5 py-1 text-xs font-semibold bg-blue-100 text-blue-700 rounded">
           {badge}
         </span>
       </div>
-      <p className="text-sm text-gray-600 mb-3">{description}</p>
-      <ul className="space-y-1">
-        {features.map((feature, idx) => (
-          <li key={idx} className="text-xs text-gray-600 flex items-center gap-2">
-            <CheckSquare className="w-3 h-3 text-green-600" />
+      <p className="text-sm text-gray-600 mb-4">{description}</p>
+      <ul className="space-y-2">
+        {features.map((feature: string, idx: number) => (
+          <li key={idx} className="text-sm text-gray-700 flex items-center gap-2">
+            <CheckSquare className="w-4 h-4 text-green-600 flex-shrink-0" />
             {feature}
           </li>
         ))}
@@ -450,164 +592,3 @@ function FeatureCard({
   )
 }
 
-// Other Tab Components (keep as before)
-function FoldersTab() {
-  return (
-    <div className="bg-white rounded-lg border border-gray-200 p-8 max-w-4xl">
-      <div className="text-center">
-        <FolderTree className="w-16 h-16 text-blue-600 mx-auto mb-4" />
-        <h2 className="text-2xl font-bold text-gray-900 mb-2">Folder Management</h2>
-        <p className="text-gray-600 mb-6">
-          Organize your clients and submissions in a hierarchical structure
-        </p>
-        <div className="text-left max-w-2xl mx-auto space-y-3">
-          <div className="p-4 bg-blue-50 rounded-lg">
-            <p className="text-sm text-gray-700">
-              <strong className="text-blue-700">B1:</strong> Client → Submission hierarchy with two-level folders
-            </p>
-          </div>
-          <div className="p-4 bg-blue-50 rounded-lg">
-            <p className="text-sm text-gray-700">
-              <strong className="text-blue-700">B2:</strong> Submission templates (Property, WC, GL, Custom)
-            </p>
-          </div>
-          <div className="p-4 bg-blue-50 rounded-lg">
-            <p className="text-sm text-gray-700">
-              <strong className="text-blue-700">B3:</strong> Context enforcement - no orphan files
-            </p>
-          </div>
-          <div className="p-4 bg-blue-50 rounded-lg">
-            <p className="text-sm text-gray-700">
-              <strong className="text-blue-700">B4:</strong> Two-way sync with badges showing file count and status
-            </p>
-          </div>
-        </div>
-      </div>
-    </div>
-  )
-}
-
-function UploadTab() {
-  return (
-    <div className="bg-white rounded-lg border border-gray-200 p-8 max-w-4xl">
-      <div className="text-center">
-        <Upload className="w-16 h-16 text-green-600 mx-auto mb-4" />
-        <h2 className="text-2xl font-bold text-gray-900 mb-2">Upload & Extract</h2>
-        <p className="text-gray-600 mb-6">Upload documents for automatic data extraction</p>
-        <div className="text-left max-w-2xl mx-auto space-y-3">
-          <div className="p-4 bg-green-50 rounded-lg">
-            <p className="text-sm text-gray-700">
-              <strong className="text-green-700">B5:</strong> Auto-extract with real-time progress and confidence scores
-            </p>
-          </div>
-          <div className="p-4 bg-green-50 rounded-lg">
-            <p className="text-sm text-gray-700">
-              <strong className="text-green-700">B6:</strong> Low confidence field filter for quality control
-            </p>
-          </div>
-          <div className="p-4 bg-green-50 rounded-lg">
-            <p className="text-sm text-gray-700">
-              <strong className="text-green-700">B7:</strong> Inline extraction guidance with hints and suggestions
-            </p>
-          </div>
-        </div>
-      </div>
-    </div>
-  )
-}
-
-function SubmissionsTab() {
-  return (
-    <div className="bg-white rounded-lg border border-gray-200 p-8 max-w-4xl">
-      <div className="text-center">
-        <FileEdit className="w-16 h-16 text-purple-600 mx-auto mb-4" />
-        <h2 className="text-2xl font-bold text-gray-900 mb-2">Edit Submissions</h2>
-        <p className="text-gray-600 mb-6">Review, edit, and fill extracted data</p>
-        <div className="text-left max-w-2xl mx-auto space-y-3">
-          <div className="p-4 bg-purple-50 rounded-lg">
-            <p className="text-sm text-gray-700">
-              <strong className="text-purple-700">B10:</strong> Context-aware dynamic forms based on templates
-            </p>
-          </div>
-          <div className="p-4 bg-purple-50 rounded-lg">
-            <p className="text-sm text-gray-700">
-              <strong className="text-purple-700">Features:</strong> Smart validation, help text, conditional fields, pre-populated data
-            </p>
-          </div>
-        </div>
-      </div>
-    </div>
-  )
-}
-
-function HistoryTab() {
-  return (
-    <div className="bg-white rounded-lg border border-gray-200 p-8 max-w-4xl">
-      <div className="text-center">
-        <Clock className="w-16 h-16 text-orange-600 mx-auto mb-4" />
-        <h2 className="text-2xl font-bold text-gray-900 mb-2">Version History</h2>
-        <p className="text-gray-600 mb-6">Track all changes with comprehensive audit trail</p>
-        <div className="text-left max-w-2xl mx-auto space-y-3">
-          <div className="p-4 bg-orange-50 rounded-lg">
-            <p className="text-sm text-gray-700">
-              <strong className="text-orange-700">B8:</strong> Automatic versioning on every change
-            </p>
-          </div>
-          <div className="p-4 bg-orange-50 rounded-lg">
-            <p className="text-sm text-gray-700">
-              <strong className="text-orange-700">Features:</strong> Compare versions, rollback capability, change tracking, audit trail
-            </p>
-          </div>
-        </div>
-      </div>
-    </div>
-  )
-}
-
-function CompareTab() {
-  return (
-    <div className="bg-white rounded-lg border border-gray-200 p-8 max-w-4xl">
-      <div className="text-center">
-        <GitCompare className="w-16 h-16 text-red-600 mx-auto mb-4" />
-        <h2 className="text-2xl font-bold text-gray-900 mb-2">Data Comparison</h2>
-        <p className="text-gray-600 mb-6">Compare data sources and resolve conflicts</p>
-        <div className="text-left max-w-2xl mx-auto space-y-3">
-          <div className="p-4 bg-red-50 rounded-lg">
-            <p className="text-sm text-gray-700">
-              <strong className="text-red-700">B9:</strong> Side-by-side comparison with conflict detection
-            </p>
-          </div>
-          <div className="p-4 bg-red-50 rounded-lg">
-            <p className="text-sm text-gray-700">
-              <strong className="text-red-700">Features:</strong> Smart resolution suggestions, visual diff, batch conflict resolution
-            </p>
-          </div>
-        </div>
-      </div>
-    </div>
-  )
-}
-
-function ExportTab() {
-  return (
-    <div className="bg-white rounded-lg border border-gray-200 p-8 max-w-4xl">
-      <div className="text-center">
-        <Download className="w-16 h-16 text-teal-600 mx-auto mb-4" />
-        <h2 className="text-2xl font-bold text-gray-900 mb-2">Export & Send</h2>
-        <p className="text-gray-600 mb-6">Export data in multiple formats or send to external systems</p>
-        <div className="text-left max-w-2xl mx-auto space-y-3">
-          <div className="p-4 bg-teal-50 rounded-lg">
-            <p className="text-sm text-gray-700">
-              <strong className="text-teal-700">B11:</strong> Export to CSV, JSON, or complete ZIP packages
-            </p>
-          </div>
-          <div className="p-4 bg-teal-50 rounded-lg">
-            <p className="text-sm text-gray-700">
-              <strong className="text-teal-700">Features:</strong> Webhook integration, batch selection, statistics dashboard, API automation
-            </p>
-          </div>
-        </div>
-      </div>
-    </div>
-  )
-}
