@@ -2,21 +2,24 @@
 
 import { Upload, CheckCircle, FileEdit, FileCheck, Clock } from 'lucide-react'
 import type { ViewType } from '@/components/MainLayout'
+import { type ComponentType, type SVGProps } from 'react';
+
+type IconComponent = ComponentType<SVGProps<SVGSVGElement>>;
 
 interface ActivityItem {
   id: string
-  icon: any
+  icon: IconComponent
   iconColor: string
   bgColor: string
   text: string
   timestamp: string
   viewType: ViewType
-  viewData?: any
+  viewData?: unknown
   breadcrumbs: string[]
 }
 
 interface RecentActivityProps {
-  onNavigate: (type: ViewType, data?: any, breadcrumbs?: string[]) => void
+  onNavigate: (type: ViewType, data?:unknown, breadcrumbs?: string[]) => void
 }
 
 export default function RecentActivity({ onNavigate }: RecentActivityProps) {

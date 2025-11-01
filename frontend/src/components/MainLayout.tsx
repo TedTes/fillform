@@ -19,10 +19,18 @@ import {
   TrendingUp,
   FileEdit
 } from 'lucide-react'
+import { type ComponentType, type SVGProps } from 'react';
 
+type IconComponent = ComponentType<SVGProps<SVGSVGElement>>;
 import QuickActions from '@/components/QuickActions'
 import RecentActivity from '@/components/RecentActivity'
 
+interface FileData {
+  client?: string;
+  name?: string;
+  date?: string;
+  confidence?: number;
+}
 // View types
 export type ViewType = 
   | 'home'
@@ -35,7 +43,7 @@ export type ViewType =
 
 interface ViewState {
   type: ViewType
-  data?: any // Context data for the view (e.g., file ID, client ID)
+  data?: unknown // Context data for the view (e.g., file ID, client ID)
   breadcrumbs: string[]
 }
 
@@ -54,7 +62,7 @@ export default function MainLayout({ children }: MainLayoutProps) {
   })
 
   // Navigation function
-  const navigateTo = (type: ViewType, data?: any, breadcrumbs?: string[]) => {
+  const navigateTo = (type: ViewType, data?:unknown, breadcrumbs?: string[]) => {
     setCurrentView({
       type,
       data,
@@ -433,7 +441,7 @@ function UploadView() {
   )
 }
 
-function FilesView({ onNavigate }: { onNavigate: (type: ViewType, data?: any, breadcrumbs?: string[]) => void }) {
+function FilesView({ onNavigate }: { onNavigate: (type: ViewType, data?: unknown, breadcrumbs?: string[]) => void }) {
   // Mock data
   const files = [
     { id: '1', name: 'ACORD_126.pdf', client: 'Client ABC', date: '2m ago', confidence: 95 },
@@ -476,14 +484,15 @@ function FilesView({ onNavigate }: { onNavigate: (type: ViewType, data?: any, br
   )
 }
 
-function FileDetailView({ data }: { data: any }) {
+function FileDetailView({ data }: { data: unknown }) {
+  const  fileData = data as FileData;
   return (
     <div className="space-y-6">
       <div className="bg-white rounded-lg border border-gray-200 p-6">
         <div className="flex items-start justify-between mb-6">
           <div>
-            <h2 className="text-2xl font-bold text-gray-900 mb-2">{data?.name || 'File Details'}</h2>
-            <p className="text-sm text-gray-600">{data?.client || 'Client'} • Uploaded {data?.date || 'recently'}</p>
+            <h2 className="text-2xl font-bold text-gray-900 mb-2">{  fileData?.name || 'File Details'}</h2>
+            <p className="text-sm text-gray-600">{fileData?.client || 'Client'} • Uploaded {fileData?.date || 'recently'}</p>
           </div>
           <div className="flex gap-2">
             <button className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50">
@@ -505,7 +514,7 @@ function FileDetailView({ data }: { data: any }) {
         <div className="space-y-3">
           <div className="flex justify-between py-2 border-b">
             <span className="text-sm text-gray-600">Confidence Score</span>
-            <span className="text-sm font-medium text-green-600">{data?.confidence || 0}%</span>
+            <span className="text-sm font-medium text-green-600">{fileData?.confidence || 0}%</span>
           </div>
           <div className="flex justify-between py-2 border-b">
             <span className="text-sm text-gray-600">Fields Extracted</span>
@@ -552,7 +561,7 @@ function ExportView() {
 }
 
 // Helper Components
-function StatCard({ icon: Icon, label, value, color }: any) {
+function StatCard({ icon: Icon, label, value, color }: {icon:IconComponent,label:string, value: string, color:string}) {
   const colors:Record<string,string>= {
     blue: 'bg-blue-50 border-blue-100 text-blue-600',
     green: 'bg-green-50 border-green-100 text-green-600',
@@ -570,7 +579,7 @@ function StatCard({ icon: Icon, label, value, color }: any) {
   )
 }
 
-function FeatureCard({ title, description, features, badge }: any) {
+function FeatureCard({ title, description, features, badge }: {title:string, description: string, features:string[], badge:string}) {
   return (
     <div className="bg-white border border-gray-200 rounded-lg p-6 hover:border-blue-200 hover:shadow-sm transition-all">
       <div className="flex items-start justify-between mb-3">

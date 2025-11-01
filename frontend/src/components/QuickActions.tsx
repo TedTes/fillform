@@ -4,7 +4,7 @@ import { Upload, FolderPlus, FileText, Download } from 'lucide-react'
 import type { ViewType } from '@/components/MainLayout'
 
 interface QuickActionsProps {
-  onNavigate: (type: ViewType, data?: any, breadcrumbs?: string[]) => void
+  onNavigate: (type: ViewType, data?: unknown, breadcrumbs?: string[]) => void
 }
 
 export default function QuickActions({ onNavigate }: QuickActionsProps) {
